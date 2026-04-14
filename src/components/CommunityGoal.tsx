@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { Progress } from "@/components/ui/progress";
+import { Heart } from "lucide-react";
 
 const CommunityGoal = () => {
   const current = 734;
@@ -7,29 +8,41 @@ const CommunityGoal = () => {
   const percent = Math.round((current / goal) * 100);
 
   return (
-    <section className="py-24 relative">
+    <section className="py-24">
       <div className="container mx-auto px-4 max-w-2xl">
         <motion.div
-          className="pixel-card text-center"
+          className="bg-card rounded-3xl p-8 md:p-10 shadow-soft border border-border/50 text-center"
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
         >
-          <h2 className="font-pixel text-lg text-secondary text-pixel-shadow mb-2">
+          <div className="w-14 h-14 rounded-2xl gradient-secondary flex items-center justify-center mx-auto mb-5">
+            <Heart className="w-7 h-7 text-secondary-foreground" />
+          </div>
+
+          <h2 className="font-heading text-2xl md:text-3xl font-bold text-foreground mb-2">
             Meta comunitária
           </h2>
-          <p className="text-muted-foreground text-sm mb-6">
-            Quando atingirmos a meta, doaremos <strong className="text-foreground">20kg de ração</strong> para os
+          <p className="text-muted-foreground mb-8">
+            Ao atingir a meta, doaremos{" "}
+            <strong className="text-foreground">20kg de ração</strong> para os
             doguinhos da universidade! 🐶
           </p>
 
-          <div className="mb-3">
-            <Progress value={percent} className="h-4 bg-muted border border-border" />
+          <div className="mb-4">
+            <Progress
+              value={percent}
+              className="h-4 rounded-full bg-muted"
+            />
           </div>
 
-          <div className="flex justify-between font-pixel text-[9px]">
-            <span className="text-primary">{current} escaneamentos</span>
-            <span className="text-muted-foreground">Meta: {goal}</span>
+          <div className="flex justify-between text-sm">
+            <span className="font-semibold text-primary">
+              {current.toLocaleString()} escaneamentos
+            </span>
+            <span className="text-muted-foreground">
+              Meta: {goal.toLocaleString()}
+            </span>
           </div>
         </motion.div>
       </div>
