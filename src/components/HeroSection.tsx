@@ -1,96 +1,102 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import heroDog from "@/assets/hero-dog.png";
+import { QrCode, Cookie, Sparkles } from "lucide-react";
 
 const HeroSection = () => {
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden scanlines">
-      {/* Animated background dots */}
-      <div className="absolute inset-0 opacity-10">
-        <div
-          className="absolute inset-0"
-          style={{
-            backgroundImage:
-              "radial-gradient(circle, hsl(142 60% 45%) 1px, transparent 1px)",
-            backgroundSize: "30px 30px",
-          }}
-        />
-      </div>
+    <section className="relative min-h-screen flex items-center overflow-hidden">
+      {/* Subtle warm gradient background */}
+      <div className="absolute inset-0 gradient-warm" />
+      <div className="absolute top-20 right-10 w-72 h-72 rounded-full bg-primary/5 blur-3xl" />
+      <div className="absolute bottom-20 left-10 w-96 h-96 rounded-full bg-secondary/5 blur-3xl" />
 
-      <div className="container mx-auto px-4 flex flex-col lg:flex-row items-center gap-12 relative z-10">
+      <div className="container mx-auto px-4 relative z-10 flex flex-col lg:flex-row items-center gap-8 lg:gap-16 py-20">
         <motion.div
           className="flex-1 text-center lg:text-left"
-          initial={{ opacity: 0, x: -40 }}
-          animate={{ opacity: 1, x: 0 }}
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
         >
-          <h1 className="text-3xl md:text-5xl lg:text-6xl font-pixel text-primary text-pixel-shadow leading-relaxed mb-6">
-            DogDex
+          <div className="inline-flex items-center gap-2 bg-primary/10 text-primary rounded-full px-4 py-1.5 text-sm font-medium mb-6">
+            <Sparkles className="w-4 h-4" />
+            Novo: Metas comunitárias!
+          </div>
+
+          <h1 className="font-heading text-4xl md:text-5xl lg:text-6xl font-bold text-foreground leading-tight mb-4">
+            Colecione os{" "}
+            <span className="text-gradient-hero">doguinhos</span>{" "}
+            do campus
           </h1>
-          <p className="text-lg md:text-xl text-foreground/80 font-body mb-2 max-w-lg">
-            Escaneie, capture e colecione todos os cachorros da universidade!
-          </p>
-          <p className="text-sm text-muted-foreground font-body mb-8 max-w-lg">
-            Cada cachorro tem um QR Code. Use seus biscoitos para capturá-los e
-            complete sua DogDex. Ajude a alimentar os doguinhos do campus!
+
+          <p className="text-lg text-muted-foreground max-w-lg mb-8 mx-auto lg:mx-0">
+            Escaneie QR Codes, capture cachorros e complete sua DogDex.
+            Cada captura ajuda a alimentar os doguinhos da universidade! 🐾
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+          <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start mb-10">
             <Button variant="hero" size="xl">
               Começar agora
             </Button>
-            <Button variant="hero-secondary" size="xl">
+            <Button variant="hero-outline" size="xl">
               Ver DogDex
             </Button>
           </div>
 
-          <div className="flex items-center gap-6 mt-8 justify-center lg:justify-start">
-            <Stat label="Cachorros" value="12" />
-            <Stat label="Treinadores" value="340+" />
-            <Stat label="Escaneios" value="2.4k" />
+          <div className="flex items-center gap-8 justify-center lg:justify-start">
+            <Stat value="12" label="Doguinhos" />
+            <div className="w-px h-8 bg-border" />
+            <Stat value="340+" label="Treinadores" />
+            <div className="w-px h-8 bg-border" />
+            <Stat value="2.4k" label="Capturas" />
           </div>
         </motion.div>
 
         <motion.div
           className="flex-1 flex justify-center"
-          initial={{ opacity: 0, scale: 0.8 }}
+          initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
+          transition={{ duration: 0.7, delay: 0.2 }}
         >
           <div className="relative">
-            <div className="absolute inset-0 bg-primary/20 rounded-full blur-3xl animate-pulse-glow" />
+            <div className="absolute -inset-8 bg-primary/10 rounded-full blur-3xl" />
             <img
               src={heroDog}
-              alt="DogDex mascote pixel art"
-              width={400}
-              height={400}
-              className="relative z-10 animate-float drop-shadow-2xl"
-              style={{ imageRendering: "auto" }}
+              alt="DogDex mascote"
+              width={420}
+              height={420}
+              className="relative z-10 animate-float drop-shadow-xl"
             />
+
+            {/* Floating badges */}
+            <motion.div
+              className="absolute top-8 -left-4 bg-card rounded-2xl shadow-soft px-4 py-3 flex items-center gap-2"
+              animate={{ y: [0, -6, 0] }}
+              transition={{ repeat: Infinity, duration: 3, delay: 0.5 }}
+            >
+              <QrCode className="w-5 h-5 text-primary" />
+              <span className="text-sm font-semibold text-foreground">Scan!</span>
+            </motion.div>
+
+            <motion.div
+              className="absolute bottom-12 -right-4 bg-card rounded-2xl shadow-soft px-4 py-3 flex items-center gap-2"
+              animate={{ y: [0, -6, 0] }}
+              transition={{ repeat: Infinity, duration: 3, delay: 1 }}
+            >
+              <Cookie className="w-5 h-5 text-secondary" />
+              <span className="text-sm font-semibold text-foreground">Capturado!</span>
+            </motion.div>
           </div>
         </motion.div>
       </div>
-
-      {/* Scroll indicator */}
-      <motion.div
-        className="absolute bottom-8 left-1/2 -translate-x-1/2"
-        animate={{ y: [0, 8, 0] }}
-        transition={{ repeat: Infinity, duration: 1.5 }}
-      >
-        <span className="font-pixel text-[8px] text-muted-foreground">
-          ▼ SCROLL ▼
-        </span>
-      </motion.div>
     </section>
   );
 };
 
-const Stat = ({ label, value }: { label: string; value: string }) => (
+const Stat = ({ value, label }: { value: string; label: string }) => (
   <div className="text-center">
-    <div className="font-pixel text-sm text-secondary">{value}</div>
-    <div className="text-[10px] text-muted-foreground font-body uppercase tracking-wider mt-1">
-      {label}
-    </div>
+    <div className="font-heading text-xl font-bold text-foreground">{value}</div>
+    <div className="text-xs text-muted-foreground mt-0.5">{label}</div>
   </div>
 );
 

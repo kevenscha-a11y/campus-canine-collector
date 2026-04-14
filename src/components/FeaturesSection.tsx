@@ -1,31 +1,30 @@
 import { motion } from "framer-motion";
-import biscuitImg from "@/assets/biscuit.png";
-import scannerImg from "@/assets/scanner.png";
+import { QrCode, Cookie, Sparkles, TrendingUp } from "lucide-react";
 
 const features = [
   {
-    icon: scannerImg,
+    icon: QrCode,
     title: "Escaneie",
-    description:
-      "Encontre cachorros pelo campus e escaneie o QR Code da coleira deles.",
+    description: "Encontre cachorros pelo campus e escaneie o QR Code da coleira.",
+    color: "bg-primary/10 text-primary",
   },
   {
-    icon: biscuitImg,
+    icon: Cookie,
     title: "Capture",
-    description:
-      "Use biscoitos para tentar capturar! Normal: 30%, Premium: 75%.",
+    description: "Use biscoitos para capturar! Normal: 30%, Premium: 75%.",
+    color: "bg-secondary/10 text-secondary",
   },
   {
-    icon: "✨",
+    icon: Sparkles,
     title: "Shiny",
-    description:
-      "5% de chance de encontrar um cachorro Shiny com sprite exclusivo!",
+    description: "5% de chance de encontrar uma versão Shiny com visual exclusivo!",
+    color: "bg-accent/10 text-accent",
   },
   {
-    icon: "⬆️",
+    icon: TrendingUp,
     title: "Evolua",
-    description:
-      "Escaneie 3x o mesmo cachorro para evoluir seu sprite na DogDex.",
+    description: "Escaneie 3x o mesmo cachorro para evoluir seu sprite na DogDex.",
+    color: "bg-rarity-legendary/10 text-rarity-legendary",
   },
 ];
 
@@ -33,47 +32,37 @@ const FeaturesSection = () => {
   return (
     <section className="py-24 relative">
       <div className="container mx-auto px-4">
-        <motion.h2
-          className="text-xl md:text-2xl font-pixel text-center text-primary text-pixel-shadow mb-4"
+        <motion.div
+          className="text-center mb-16"
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
         >
-          Como funciona
-        </motion.h2>
-        <p className="text-center text-muted-foreground mb-16 max-w-md mx-auto">
-          Capture todos os doguinhos e ajude a alimentá-los!
-        </p>
+          <h2 className="font-heading text-3xl md:text-4xl font-bold text-foreground mb-3">
+            Como funciona
+          </h2>
+          <p className="text-muted-foreground text-lg max-w-md mx-auto">
+            Capture todos os doguinhos e ajude a alimentá-los!
+          </p>
+        </motion.div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {features.map((feature, i) => (
             <motion.div
               key={feature.title}
-              className="pixel-card flex flex-col items-center text-center group hover:border-primary/50 transition-colors"
+              className="bg-card rounded-2xl p-6 shadow-card hover:shadow-soft transition-all duration-300 hover:-translate-y-1 border border-border/50"
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: i * 0.1 }}
             >
-              <div className="w-16 h-16 mb-4 flex items-center justify-center">
-                {typeof feature.icon === "string" &&
-                feature.icon.length <= 3 ? (
-                  <span className="text-4xl">{feature.icon}</span>
-                ) : (
-                  <img
-                    src={feature.icon}
-                    alt={feature.title}
-                    width={64}
-                    height={64}
-                    loading="lazy"
-                    className="object-contain"
-                  />
-                )}
+              <div className={`w-12 h-12 rounded-xl ${feature.color} flex items-center justify-center mb-4`}>
+                <feature.icon className="w-6 h-6" />
               </div>
-              <h3 className="font-pixel text-xs text-secondary mb-2">
+              <h3 className="font-heading text-lg font-semibold text-foreground mb-2">
                 {feature.title}
               </h3>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-muted-foreground leading-relaxed">
                 {feature.description}
               </p>
             </motion.div>
