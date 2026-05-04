@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import heroDog from "@/assets/hero-dog.png";
 import { QrCode, Cookie, Sparkles } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const HeroSection = () => {
   return (
@@ -35,11 +36,11 @@ const HeroSection = () => {
           </p>
 
           <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start mb-10">
-            <Button variant="hero" size="xl">
-              Começar agora
+            <Button asChild variant="hero" size="xl">
+              <Link to="/app">Começar agora</Link>
             </Button>
-            <Button variant="hero-outline" size="xl">
-              Ver DogDex
+            <Button asChild variant="hero-outline" size="xl">
+              <Link to="/app">Ver DogDex</Link>
             </Button>
           </div>
 
