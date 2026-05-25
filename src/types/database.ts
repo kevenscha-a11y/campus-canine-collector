@@ -8,6 +8,7 @@ export type Personality =
   | "lazy"
   | "energetic";
 export type BiscuitType = "normal" | "premium";
+export type UserRole = "user" | "admin";
 
 export interface Dog {
   id: string;
@@ -20,7 +21,33 @@ export interface Dog {
   personality: Personality;
   rarity: Rarity;
   emoji: string;
+  sprite_url: string | null;
+  silhouette_url: string | null;
+  large_image_url: string | null;
   max_evolution_stage: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DogQRCode {
+  id: string;
+  dog_id: string;
+  token: string;
+  label: string | null;
+  location_hint: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Profile {
+  id: string;
+  display_name: string;
+  avatar_url: string | null;
+  role: UserRole;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface UserDogEntry {

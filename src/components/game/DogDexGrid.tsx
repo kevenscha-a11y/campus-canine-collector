@@ -6,13 +6,22 @@ import type { Dog, UserDogEntry } from "@/types/database";
 import { DogDetailModal } from "./DogDetailModal";
 import { DogSprite, getDexVisibility } from "./DogSprite";
 import { PokedexShell } from "./PokedexShell";
-import { Sparkles, Lock } from "lucide-react";
+import { Sparkles, Lock, Edit2, Trash2 } from "lucide-react";
+import { useUserRole } from "@/hooks/useUserRole";
+import { AdminDogPanel } from "@/components/AdminDogPanel";
+import { dogService } from "@/services/dogService";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 type Filter = "all" | "captured" | "unknown";
 
 export function DogDexGrid() {
   const { data: rows, isLoading } = useDogDexEntries();
   const { data: stats } = useDogDexStats();
+  const { isAdmin } = useUserRole();
+  const queryClient = useQueryClient();
+  const [adminEditId, setAdminEditId] = useState<string | null>(null);
+  const [adminCreateMode, setAdminCreateMode] = useState(false);
   const [filter, setFilter] = useState<Filter>("all");
   const [selected, setSelected] = useState<{ dog: Dog; entry: UserDogEntry } | null>(null);
 
@@ -25,11 +34,11 @@ export function DogDexGrid() {
       if (filter === "unknown") return !captured;
       return true;
     }).map(({ dog, entry }) => {
-      const captured = entry?.is_captured ?? false;
-      const seen = !!(entry?.first_seen_at || entry?.last_encounter_at);
+      const captured = isAdmin ? true : entry?.is_captured ?? false;
+      const seen = isAdmin ? true : !!(entry?.first_seen_at || entry?.last_encounter_at);
       return { dog, entry, captured, seen, visibility: getDexVisibility(captured, seen) };
     });
-  }, [rows, filter]);
+  }, [rows, filter, isAdmin]);
 
   const header = (
     <div className="px-3 py-2 space-y-2 shrink-0 bg-[hsl(80_20%_82%)] border-b border-[hsl(145_20%_70%)]">
@@ -85,8 +94,28 @@ export function DogDexGrid() {
               <motion.button
                 key={dog.id}
                 type="button"
-                disabled={!captured || !entry}
-                onClick={() => captured && entry && setSelected({ dog, entry })}
+                disabled={!captured || (!entry && !isAdmin)}
+                onClick={() => {
+                  if (!captured) return;
+                  if (entry) return setSelected({ dog, entry });
+                  if (isAdmin) {
+                    const fakeEntry = {
+                      id: `admin-${dog.id}`,
+                      user_id: "",
+                      dog_id: dog.id,
+                      is_captured: true,
+                      is_shiny: false,
+                      scan_count: 0,
+                      evolution_stage: 0,
+                      first_seen_at: null,
+                      captured_at: null,
+                      last_encounter_at: null,
+                      created_at: new Date().toISOString(),
+                      updated_at: new Date().toISOString(),
+                    } as any;
+                    setSelected({ dog, entry: fakeEntry });
+                  }
+                }}
                 className={`relative rounded-xl p-2 flex flex-col items-center gap-0.5 border-2 text-center min-h-[88px] ${
                   captured
                     ? "bg-white border-primary/40 hover:border-primary cursor-pointer shadow-sm"
@@ -98,6 +127,46 @@ export function DogDexGrid() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.015 }}
               >
+                {isAdmin && (
+                  <div className="absolute top-1 right-1 z-10 flex gap-1">
+                    <button
+                      type="button"
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        if (!confirm(`Excluir ${dog.name} e reordenar a Pokédex?`)) return;
+                        try {
+                          await dogService.deleteDogAndResequence(dog.id);
+                          await queryClient.invalidateQueries({ queryKey: ["dogdex-entries"] });
+                          await queryClient.invalidateQueries({ queryKey: ["dogdex-stats"] });
+                          toast.success(`${dog.name} excluído com sucesso.`);
+                        } catch (error) {
+                          const message =
+                            error instanceof Error
+                              ? error.message
+                              : typeof error === "object" && error && "message" in error
+                                ? String((error as { message?: string }).message || "Falha ao excluir cachorro")
+                                : "Falha ao excluir cachorro";
+                          toast.error(message);
+                        }
+                      }}
+                      aria-label={`Excluir ${dog.name}`}
+                      className="rounded px-1 py-0.5 bg-white/90 hover:bg-white text-muted-foreground border"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setAdminEditId(dog.id);
+                      }}
+                      aria-label={`Editar ${dog.name}`}
+                      className="rounded px-1 py-0.5 bg-white/90 hover:bg-white text-muted-foreground border"
+                    >
+                      <Edit2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                )}
                 <DogSprite dog={dog} visibility={visibility} size="sm" shiny={entry?.is_shiny} />
                 <span
                   className={`text-[9px] font-mono mt-0.5 ${
@@ -127,6 +196,27 @@ export function DogDexGrid() {
                 )}
               </motion.button>
             ))}
+            {isAdmin && (
+              <motion.button
+                key="add-dog-card"
+                type="button"
+                onClick={() => {
+                  // open inline admin create modal instead of navigating
+                  setAdminCreateMode(true);
+                }}
+                className={`relative rounded-xl p-2 flex flex-col items-center gap-0.5 border-2 text-center min-h-[88px] bg-white/60 border-dashed border-muted-foreground/30 cursor-pointer hover:opacity-100`}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: filtered.length * 0.015 }}
+              >
+                <div className="flex-1 flex items-center justify-center">
+                  <div className="rounded-full w-10 h-10 border-2 border-dashed border-muted-foreground/50 flex items-center justify-center text-2xl text-muted-foreground/80">
+                    +
+                  </div>
+                </div>
+                <span className="text-[10px] font-bold text-muted-foreground">Adicionar</span>
+              </motion.button>
+            )}
           </div>
         </div>
       </PokedexShell>
@@ -137,6 +227,17 @@ export function DogDexGrid() {
           onOpenChange={(o) => !o && setSelected(null)}
           dog={selected.dog}
           entry={selected.entry}
+        />
+      )}
+
+      {isAdmin && (
+        <AdminDogPanel
+          editDogId={adminEditId}
+          createMode={adminCreateMode}
+          onClose={() => {
+            setAdminEditId(null);
+            setAdminCreateMode(false);
+          }}
         />
       )}
     </>

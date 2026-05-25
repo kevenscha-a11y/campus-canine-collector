@@ -296,7 +296,7 @@ DROP TRIGGER IF EXISTS trg_user_dog_entries_updated_at ON public.user_dog_entrie
 CREATE TRIGGER trg_user_dog_entries_updated_at BEFORE UPDATE ON public.user_dog_entries FOR EACH ROW EXECUTE PROCEDURE public.set_updated_at();
 
 CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, row_security = off AS $$
 DECLARE
   v_name text;
   v_catalog integer;

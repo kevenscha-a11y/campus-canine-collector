@@ -22,22 +22,25 @@ export default function Register() {
       return;
     }
     setLoading(true);
-    const result = await signUp(email, password, name);
-    setLoading(false);
+    try {
+      const result = await signUp(email, password, name);
 
-    if (result.error) {
-      toast.error(result.error);
-      return;
+      if (result.error) {
+        toast.error(result.error);
+        return;
+      }
+
+      if (result.needsVerification) {
+        toast.success("Conta criada! Abra o link no e-mail para ativar.");
+        navigate("/verify-email", { state: { email: email.trim() } });
+        return;
+      }
+
+      toast.success("Conta criada! Bem-vindo ao campus.");
+      navigate("/app", { replace: true });
+    } finally {
+      setLoading(false);
     }
-
-    if (result.needsVerification) {
-      toast.success("Conta criada! Abra o link no e-mail para ativar.");
-      navigate("/verify-email", { state: { email: email.trim() } });
-      return;
-    }
-
-    toast.success("Conta criada! Bem-vindo ao campus.");
-    navigate("/app", { replace: true });
   }
 
   return (

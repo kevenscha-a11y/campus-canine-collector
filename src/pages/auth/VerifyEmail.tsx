@@ -25,16 +25,18 @@ export default function VerifyEmail() {
 
   async function handleAlreadyConfirmed() {
     setChecking(true);
-    const session = await refreshSession();
-    setChecking(false);
-
-    const u = session?.user ?? user;
-    if (u && isEmailVerified(u)) {
-      toast.success("E-mail confirmado! Entrando...");
-      navigate("/app", { replace: true });
-      return;
+    try {
+      const session = await refreshSession();
+      const u = session?.user ?? user;
+      if (u && isEmailVerified(u)) {
+        toast.success("E-mail confirmado! Entrando...");
+        navigate("/app", { replace: true });
+        return;
+      }
+      toast.message("Ainda não confirmado. Abra o link no e-mail e tente de novo.");
+    } finally {
+      setChecking(false);
     }
-    toast.message("Ainda não confirmado. Abra o link no e-mail e tente de novo.");
   }
 
   return (

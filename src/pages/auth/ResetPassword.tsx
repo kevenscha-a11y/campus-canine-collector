@@ -39,14 +39,17 @@ export default function ResetPassword() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    const { error } = await supabase.auth.updateUser({ password });
-    setLoading(false);
-    if (error) {
-      toast.error(translateAuthError(error.message));
-      return;
+    try {
+      const { error } = await supabase.auth.updateUser({ password });
+      if (error) {
+        toast.error(translateAuthError(error.message));
+        return;
+      }
+      toast.success("Senha atualizada!");
+      navigate("/app", { replace: true });
+    } finally {
+      setLoading(false);
     }
-    toast.success("Senha atualizada!");
-    navigate("/app", { replace: true });
   }
 
   return (

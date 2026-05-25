@@ -25,22 +25,24 @@ export default function Login() {
       return;
     }
     setLoading(true);
-    const result = await signIn(email, password);
-    setLoading(false);
+    try {
+      const result = await signIn(email, password);
 
-    if (result.error) {
-      toast.error(result.error);
-      return;
+      if (result.error) {
+        toast.error(result.error);
+        return;
+      }
+
+      if (result.needsVerification) {
+      toast.success("Confirme seu e-mail para continuar.");
+        return;
+      }
+
+      toast.success("Bem-vindo de volta!");
+      navigate(from, { replace: true });
+    } finally {
+      setLoading(false);
     }
-
-    if (result.needsVerification) {
-      toast.message("Confirme seu e-mail para continuar.");
-      navigate("/verify-email", { state: { email: email.trim() } });
-      return;
-    }
-
-    toast.success("Bem-vindo de volta!");
-    navigate(from, { replace: true });
   }
 
   return (

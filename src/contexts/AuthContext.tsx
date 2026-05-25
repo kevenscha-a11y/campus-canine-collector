@@ -49,7 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (mounted) {
           setSession(initialSession);
           if (initialSession?.user) {
-            await ensureUserGameRows(initialSession.user).catch(() => {});
+            ensureUserGameRows(initialSession.user).catch(() => {});
           }
         }
       } catch (error) {
@@ -67,11 +67,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (mounted) {
         setSession(s);
         if (s?.user) {
-          try {
-            await ensureUserGameRows(s.user);
-          } catch {
+          ensureUserGameRows(s.user).catch(() => {
             /* tabelas podem não existir ainda */
-          }
+          });
         }
       }
     });
@@ -100,7 +98,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const activeSession = data.session;
 
     if (user && activeSession) {
-      await ensureUserGameRows(user).catch(() => {});
+      ensureUserGameRows(user).catch(() => {});
       if (isEmailVerified(user)) {
         setSession(activeSession);
         return { error: null, needsVerification: false, user };
@@ -132,7 +130,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { error: "Não foi possível iniciar a sessão." };
     }
 
-    await ensureUserGameRows(user).catch(() => {});
+    ensureUserGameRows(user).catch(() => {});
 
     if (!isEmailVerified(user)) {
       return {

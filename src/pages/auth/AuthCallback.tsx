@@ -43,7 +43,7 @@ export default function AuthCallback() {
           return;
         }
 
-        await ensureUserGameRows(session.user).catch(() => {});
+        ensureUserGameRows(session.user).catch(() => {});
 
         if (isEmailVerified(session.user)) {
           navigate("/app", { replace: true });

@@ -7,13 +7,18 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useCaptureHistory } from "@/hooks/useGameData";
-import type { Dog, UserDogEntry } from "@/types/database";
+import type { Dog, DogQRCode, UserDogEntry } from "@/types/database";
 import { PERSONALITY_LABELS, RARITY_CLASS, RARITY_LABELS } from "@/lib/rarity";
 import { GAME_RULES } from "@/lib/gameEngine";
 import { DogSprite } from "./DogSprite";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Sparkles, TrendingUp } from "lucide-react";
+import { useEffect, useState } from "react";
+import { dogService } from "@/services/dogService";
+import { useUserRole } from "@/hooks/useUserRole";
+import QRCode from "qrcode";
+import { Button } from "@/components/ui/button";
 
 const STAGE_NAMES = ["—", "Filhote", "Adulto", "Lendário"];
 
@@ -29,10 +34,53 @@ export function DogDetailModal({
   entry: UserDogEntry;
 }) {
   const { data: history } = useCaptureHistory(dog.id);
+  const { isAdmin } = useUserRole();
+  const [qr, setQr] = useState<DogQRCode | null>(null);
+  const [qrDataUrl, setQrDataUrl] = useState<string>("");
   const evoProgress = Math.min(
     100,
     (entry.scan_count / GAME_RULES.evolutionScans) * 100,
   );
+
+  useEffect(() => {
+    if (!open || !isAdmin) return;
+
+    let mounted = true;
+    (async () => {
+      try {
+        const primary = await dogService.getPrimaryQRCode(dog.id);
+        if (!mounted) return;
+        setQr(primary);
+
+        if (primary?.token) {
+          const dataUrl = await QRCode.toDataURL(primary.token, {
+            width: 280,
+            margin: 1,
+          });
+          if (mounted) setQrDataUrl(dataUrl);
+        } else {
+          setQrDataUrl("");
+        }
+      } catch {
+        if (mounted) {
+          setQr(null);
+          setQrDataUrl("");
+        }
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, [open, isAdmin, dog.id]);
+
+  function handleExportQr() {
+    if (!qrDataUrl || !qr) return;
+    const link = document.createElement("a");
+    link.href = qrDataUrl;
+    link.download = `qrcode-${dog.slug || dog.name.toLowerCase()}.png`;
+    link.click();
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -138,6 +186,36 @@ export function DogDetailModal({
                   </li>
                 ))}
               </ul>
+            </div>
+          )}
+
+          {isAdmin && (
+            <div className="border-t pt-3 space-y-2">
+              <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                QR Code (Admin)
+              </p>
+
+              {qr && qrDataUrl ? (
+                <div className="rounded-xl border p-3 bg-muted/20 space-y-3">
+                  <div className="flex justify-center">
+                    <img
+                      src={qrDataUrl}
+                      alt={`QR Code de ${dog.name}`}
+                      className="h-40 w-40 rounded border bg-white p-2"
+                    />
+                  </div>
+                  <p className="text-[11px] text-muted-foreground break-all">
+                    Token: {qr.token}
+                  </p>
+                  <Button type="button" className="w-full" onClick={handleExportQr}>
+                    Exportar QR Code
+                  </Button>
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Nenhum QR code ativo para este cachorro.
+                </p>
+              )}
             </div>
           )}
         </div>
