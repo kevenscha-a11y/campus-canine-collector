@@ -1,4 +1,4 @@
-# Campus Canine Collector
+# DogDex
 
 SPA React + Supabase. Colecione doguinhos do campus escaneando QR Codes na coleira.
 

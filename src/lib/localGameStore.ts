@@ -32,7 +32,9 @@ interface LocalState {
   history: CaptureHistoryItem[];
 }
 
-const key = (userId: string) => `campus-canine-game:${userId}`;
+const key = (userId: string) => `dogdex-game:${userId}`;
+
+const legacyKey = (userId: string) => `campus-canine-game:${userId}`;
 
 function defaultWallet(): BiscuitWallet {
   return {
@@ -45,7 +47,7 @@ function defaultWallet(): BiscuitWallet {
 
 function load(userId: string): LocalState {
   try {
-    const raw = localStorage.getItem(key(userId));
+    const raw = localStorage.getItem(key(userId)) ?? localStorage.getItem(legacyKey(userId));
     if (raw) return JSON.parse(raw) as LocalState;
   } catch {
     /* ignore */

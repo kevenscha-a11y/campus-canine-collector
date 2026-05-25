@@ -1,5 +1,5 @@
 -- =============================================================================
--- Campus Canine Collector — SCRIPT COMPLETO (Supabase)
+-- DogDex — SCRIPT COMPLETO (Supabase)
 -- Cole e execute de uma vez no SQL Editor.
 -- Não altera public.todos. Auth fica em auth.users (Supabase Auth).
 -- =============================================================================

@@ -1,4 +1,4 @@
-# Sistema de Administração - Campus Canine Collector
+# Sistema de Administração - DogDex
 
 ## Resumo
 

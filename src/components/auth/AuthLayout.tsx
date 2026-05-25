@@ -14,7 +14,7 @@ export function AuthLayout({
       <div className="absolute inset-0 gradient-warm" />
       <div className="relative z-10 container max-w-md mx-auto px-4 py-12">
         <Link to="/" className="font-heading text-xl font-bold text-primary mb-8 inline-block">
-          Campus Canine
+          DogDex
         </Link>
         <h1 className="font-heading text-3xl font-bold text-foreground">{title}</h1>
         {subtitle ? (

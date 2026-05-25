@@ -1,4 +1,4 @@
--- Campus Canine Collector — Supabase (schema public + auth.users)
+-- DogDex — Supabase (schema public + auth.users)
 -- Rode no SQL Editor do Supabase, nesta ordem, após a tabela public.todos existir.
 
 -- ---------------------------------------------------------------------------
