@@ -3,7 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { isEmailVerified } from "@/lib/authHelpers";
 
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading, isConfigured } = useAuth();
+  const { user, loading } = useAuth();
   const location = useLocation();
 
   if (loading) {
@@ -12,10 +12,6 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
         <div className="text-muted-foreground animate-pulse">Carregando...</div>
       </div>
     );
-  }
-
-  if (!isConfigured) {
-    return <Navigate to="/login" state={{ setupRequired: true }} replace />;
   }
 
   if (!user) {

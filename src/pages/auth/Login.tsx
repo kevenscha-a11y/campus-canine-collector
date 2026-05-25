@@ -8,11 +8,10 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 
 export default function Login() {
-  const { signIn, isConfigured } = useAuth();
+  const { signIn } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const from = (location.state as { from?: { pathname: string } })?.from?.pathname ?? "/app";
-  const setupRequired = (location.state as { setupRequired?: boolean })?.setupRequired;
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -20,10 +19,6 @@ export default function Login() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!isConfigured) {
-      toast.error("Configure VITE_SUPABASE_URL e VITE_SUPABASE_PUBLISHABLE_KEY no .env");
-      return;
-    }
     setLoading(true);
     try {
       const result = await signIn(email, password);
@@ -34,7 +29,7 @@ export default function Login() {
       }
 
       if (result.needsVerification) {
-      toast.success("Confirme seu e-mail para continuar.");
+        toast.success("Confirme seu e-mail para continuar.");
         return;
       }
 

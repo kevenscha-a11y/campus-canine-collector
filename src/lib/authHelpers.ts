@@ -24,7 +24,7 @@ export function translateAuthError(message: string): string {
     return "E-mail inválido.";
   }
   if (m.includes("signup is disabled")) {
-    return "Cadastro desativado no Supabase.";
+    return "Cadastro indisponível no momento.";
   }
   if (m.includes("email rate limit")) {
     return "Muitas tentativas. Aguarde alguns minutos.";

@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 
 export default function Register() {
-  const { signUp, isConfigured } = useAuth();
+  const { signUp } = useAuth();
   const navigate = useNavigate();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -17,10 +17,6 @@ export default function Register() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!isConfigured) {
-      toast.error("Configure o .env com as chaves do Supabase.");
-      return;
-    }
     setLoading(true);
     try {
       const result = await signUp(email, password, name);
