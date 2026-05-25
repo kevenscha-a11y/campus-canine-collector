@@ -55,7 +55,6 @@ export default function Login() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            disabled={!isConfigured}
             className="mt-1"
           />
         </div>
@@ -68,11 +67,10 @@ export default function Login() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            disabled={!isConfigured}
             className="mt-1"
           />
         </div>
-        <Button type="submit" variant="hero" className="w-full" disabled={loading || !isConfigured}>
+        <Button type="submit" variant="hero" className="w-full" disabled={loading}>
           {loading ? "Entrando..." : "Entrar"}
         </Button>
       </form>

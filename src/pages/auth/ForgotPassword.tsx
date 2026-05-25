@@ -42,11 +42,10 @@ export default function ForgotPassword() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              disabled={!isConfigured}
               className="mt-1"
             />
           </div>
-          <Button type="submit" variant="hero" className="w-full" disabled={!isConfigured}>
+          <Button type="submit" variant="hero" className="w-full">
             Enviar link
           </Button>
         </form>

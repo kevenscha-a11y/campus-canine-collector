@@ -42,11 +42,6 @@ export default function Register() {
 
   return (
     <AuthLayout title="Cadastro" subtitle="Crie sua conta de treinador canino.">
-      {!isConfigured && (
-        <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
-          Sem <code className="font-mono">.env</code> configurado o cadastro não funciona.
-        </p>
-      )}
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <Label htmlFor="name">Nome</Label>
@@ -55,7 +50,6 @@ export default function Register() {
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
-            disabled={!isConfigured}
             className="mt-1"
           />
         </div>
@@ -68,7 +62,6 @@ export default function Register() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            disabled={!isConfigured}
             className="mt-1"
           />
         </div>
@@ -82,11 +75,10 @@ export default function Register() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            disabled={!isConfigured}
             className="mt-1"
           />
         </div>
-        <Button type="submit" variant="hero" className="w-full" disabled={loading || !isConfigured}>
+        <Button type="submit" variant="hero" className="w-full" disabled={loading}>
           {loading ? "Criando..." : "Criar conta"}
         </Button>
       </form>
