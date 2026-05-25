@@ -122,4 +122,14 @@
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
+
+  .scan-corner-pulse {
+    animation: scan-pulse 2s ease-in-out infinite;
+    box-shadow: 0 0 0 2px hsl(var(--primary) / 0.6);
+  }
+
+  @keyframes scan-pulse {
+    0%, 100% { box-shadow: 0 0 0 2px hsl(var(--primary) / 0.4); }
+    50% { box-shadow: 0 0 0 4px hsl(var(--primary) / 0.8); }
+  }
 }

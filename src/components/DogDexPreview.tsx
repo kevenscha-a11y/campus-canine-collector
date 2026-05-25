@@ -1,22 +1,17 @@
 import { motion } from "framer-motion";
+import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { DOG_CATALOG } from "@/data/catalog";
+import { DogSprite, getDexVisibility } from "@/components/game/DogSprite";
 
-const DOGS = [
-  { id: 1, name: "Rex", captured: true, emoji: "🐕" },
-  { id: 2, name: "Thor", captured: true, emoji: "🦮" },
-  { id: 3, name: "Luna", captured: false, emoji: "🐩" },
-  { id: 4, name: "Mel", captured: true, emoji: "🐶" },
-  { id: 5, name: "Bob", captured: false, emoji: "🐕‍🦺" },
-  { id: 6, name: "Nina", captured: false, emoji: "🐾" },
-  { id: 7, name: "Zeus", captured: true, emoji: "🦴" },
-  { id: 8, name: "Pipoca", captured: false, emoji: "🐕" },
-  { id: 9, name: "Caramelo", captured: true, emoji: "🐶" },
-  { id: 10, name: "Bolinha", captured: false, emoji: "🐩" },
-  { id: 11, name: "Frajola", captured: false, emoji: "🦮" },
-  { id: 12, name: "Buddy", captured: false, emoji: "🐕" },
-];
-
+/** Preview estático da landing — mesma linguagem visual da DogDex do app */
 const DogDexPreview = () => {
-  const capturedCount = DOGS.filter((d) => d.captured).length;
+  const preview = DOG_CATALOG.map((dog, i) => ({
+    dog,
+    captured: i % 3 !== 1,
+    seen: i % 3 === 1 || i % 3 === 0,
+  }));
+  const capturedCount = preview.filter((p) => p.captured).length;
 
   return (
     <section className="py-24 relative">
@@ -32,39 +27,49 @@ const DogDexPreview = () => {
             DogDex
           </h2>
           <p className="text-muted-foreground text-lg">
-            {capturedCount}/{DOGS.length} capturados — complete sua coleção!
+            {capturedCount}/{DOG_CATALOG.length} no exemplo — na sua conta, o progresso é só seu
           </p>
         </motion.div>
 
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-4 max-w-3xl mx-auto">
-          {DOGS.map((dog, i) => (
-            <motion.div
-              key={dog.id}
-              className={`bg-card rounded-2xl p-4 flex flex-col items-center gap-2 cursor-pointer transition-all duration-200 border ${
-                dog.captured
-                  ? "border-primary/20 hover:shadow-hover hover:-translate-y-1"
-                  : "border-border/30 opacity-50"
-              }`}
-              initial={{ opacity: 0, scale: 0.9 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.03 }}
-            >
-              <div className="text-3xl">
-                {dog.captured ? dog.emoji : "❓"}
-              </div>
-              <span className="text-[10px] text-muted-foreground font-medium">
-                #{String(dog.id).padStart(3, "0")}
-              </span>
-              <span
-                className={`text-xs font-semibold ${
-                  dog.captured ? "text-foreground" : "text-muted-foreground"
+        <div className="max-w-3xl mx-auto rounded-2xl border-4 border-[hsl(0_72%_42%)] p-3 bg-[hsl(145_40%_18%)] shadow-lg">
+          <div className="rounded-xl bg-[hsl(80_25%_88%)] p-4 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
+            {preview.map(({ dog, captured, seen }, i) => (
+              <motion.div
+                key={dog.id}
+                className={`rounded-xl p-3 flex flex-col items-center gap-1 border-2 ${
+                  captured
+                    ? "bg-white border-primary/30"
+                    : "bg-[hsl(220_15%_22%)] border-[hsl(220_15%_28%)]"
                 }`}
+                initial={{ opacity: 0, scale: 0.9 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.03 }}
               >
-                {dog.captured ? dog.name : "???"}
-              </span>
-            </motion.div>
-          ))}
+                <DogSprite
+                  dog={dog}
+                  visibility={getDexVisibility(captured, seen)}
+                  size="sm"
+                />
+                <span className="text-[10px] font-mono text-muted-foreground">
+                  #{String(dog.dex_number).padStart(3, "0")}
+                </span>
+                <span
+                  className={`text-xs font-bold ${
+                    captured ? "text-foreground" : "text-muted-foreground tracking-widest"
+                  }`}
+                >
+                  {captured ? dog.name : "?????"}
+                </span>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+
+        <div className="text-center mt-8">
+          <Button asChild variant="hero" size="lg">
+            <Link to="/register">Abrir sua DogDex</Link>
+          </Button>
         </div>
       </div>
     </section>

@@ -37,10 +37,10 @@ const HeroSection = () => {
 
           <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start mb-10">
             <Button asChild variant="hero" size="xl">
-              <Link to="/app">Começar agora</Link>
+              <Link to="/register">Começar agora</Link>
             </Button>
             <Button asChild variant="hero-outline" size="xl">
-              <Link to="/app">Ver DogDex</Link>
+              <Link to="/login">Entrar</Link>
             </Button>
           </div>
 

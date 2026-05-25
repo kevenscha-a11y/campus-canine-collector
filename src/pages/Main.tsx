@@ -1,213 +1,49 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Camera, Settings, BookOpen, RefreshCw } from "lucide-react";
-
-function useUserMedia(constraints: MediaStreamConstraints) {
-  const [stream, setStream] = useState<MediaStream | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let active = true;
-
-    async function start() {
-      try {
-        const s = await navigator.mediaDevices.getUserMedia(constraints);
-        if (!active) {
-          s.getTracks().forEach((t) => t.stop());
-          return;
-        }
-        setStream(s);
-      } catch (e) {
-        const message =
-          e instanceof Error ? e.message : "Não foi possível acessar a câmera.";
-        setError(message);
-      }
-    }
-
-    start();
-
-    return () => {
-      active = false;
-      setStream((prev) => {
-        prev?.getTracks().forEach((t) => t.stop());
-        return null;
-      });
-    };
-  }, [constraints]);
-
-  return { stream, error };
-}
-
-function CameraPanel() {
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
-
-  const constraints = useMemo<MediaStreamConstraints>(
-    () => ({
-      video: { facingMode: "environment" },
-      audio: false,
-    }),
-    [],
-  );
-
-  const { stream, error } = useUserMedia(constraints);
-
-  useEffect(() => {
-    if (!videoRef.current) return;
-    if (!stream) return;
-    videoRef.current.srcObject = stream;
-  }, [stream]);
-
-  function capture() {
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    if (!video || !canvas) return;
-
-    const w = video.videoWidth || 1280;
-    const h = video.videoHeight || 720;
-    canvas.width = w;
-    canvas.height = h;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    ctx.drawImage(video, 0, 0, w, h);
-    setPhotoUrl(canvas.toDataURL("image/jpeg", 0.9));
-  }
-
-  return (
-    <div className="h-full w-full flex flex-col gap-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 text-foreground">
-          <Camera className="h-5 w-5" />
-          <span className="font-semibold">Captura</span>
-        </div>
-        <Button
-          variant="secondary"
-          size="sm"
-          className="shadow-card"
-          onClick={() => setPhotoUrl(null)}
-        >
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Limpar
-        </Button>
-      </div>
-
-      <Card className="relative flex-1 overflow-hidden border-white/70 shadow-soft bg-card/90 backdrop-blur-sm">
-        <div className="absolute inset-0 bg-muted/30" />
-        {error ? (
-          <div className="relative z-10 h-full w-full flex items-center justify-center p-6 text-center">
-            <div className="max-w-md">
-              <div className="text-lg font-heading font-semibold mb-2">
-                Permissão da câmera
-              </div>
-              <div className="text-sm text-muted-foreground">
-                {error}
-                <br />
-                Libere a permissão do navegador e recarregue a página.
-              </div>
-            </div>
-          </div>
-        ) : (
-          <>
-            <video
-              ref={videoRef}
-              autoPlay
-              playsInline
-              muted
-              className="relative z-10 h-full w-full object-cover"
-            />
-            <div className="pointer-events-none absolute inset-x-0 top-0 z-20 h-20 bg-gradient-to-b from-black/35 to-transparent" />
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-24 bg-gradient-to-t from-black/45 to-transparent" />
-            <canvas ref={canvasRef} className="hidden" />
-          </>
-        )}
-      </Card>
-
-      <div className="flex items-center justify-between gap-3">
-        <Button
-          variant="hero"
-          className="w-full shadow-hover"
-          size="lg"
-          onClick={capture}
-          disabled={!stream || !!error}
-        >
-          Capturar doguinho
-        </Button>
-      </div>
-
-      {photoUrl ? (
-        <Card className="p-3 border-white/70 shadow-card bg-card/90">
-          <div className="text-sm font-semibold mb-2">Última captura</div>
-          <img
-            src={photoUrl}
-            alt="Captura"
-            className="w-full rounded-md border object-cover"
-          />
-        </Card>
-      ) : null}
-    </div>
-  );
-}
+import { LogOut, Settings } from "lucide-react";
+import { BiscuitHUD } from "@/components/game/BiscuitHUD";
+import { DogDexGrid } from "@/components/game/DogDexGrid";
+import { QrScannerPanel } from "@/components/game/QrScannerPanel";
+import { useAuth } from "@/contexts/AuthContext";
+import { useDogDexStats } from "@/hooks/useGameData";
+import { GameProvider } from "@/contexts/GameContext";
 
 function SettingsPanel() {
+  const { user, signOut } = useAuth();
+  const { data: stats } = useDogDexStats();
+
   return (
     <div className="h-full w-full flex flex-col gap-4">
       <div className="flex items-center gap-2 text-foreground">
         <Settings className="h-5 w-5" />
         <span className="font-semibold">Configurações</span>
       </div>
-      <Card className="p-5 border-white/70 shadow-card bg-card/90">
-        <div className="text-sm text-muted-foreground mb-4">
-          Ajuste sua experiência de captura.
+      <Card className="p-5 border-white/70 shadow-card bg-card/90 space-y-3">
+        <div className="rounded-xl bg-muted/60 border p-3">
+          <div className="font-medium text-sm">Treinador</div>
+          <div className="text-xs text-muted-foreground mt-1">{user?.email}</div>
         </div>
-        <div className="space-y-3">
-          <div className="rounded-xl bg-muted/60 border p-3">
-            <div className="font-medium text-sm">Notificações</div>
-            <div className="text-xs text-muted-foreground mt-1">
-              Receba alertas de novos doguinhos no campus.
-            </div>
+        <div className="rounded-xl bg-primary/5 border border-primary/20 p-3">
+          <div className="font-medium text-sm">Progresso global</div>
+          <div className="text-2xl font-heading font-bold text-primary tabular-nums mt-1">
+            {stats?.completion_percent ?? 0}%
           </div>
-          <div className="rounded-xl bg-muted/60 border p-3">
-            <div className="font-medium text-sm">Permissões</div>
-            <div className="text-xs text-muted-foreground mt-1">
-              Controle acesso à câmera e localização.
-            </div>
-          </div>
-          <div className="rounded-xl bg-muted/60 border p-3">
-            <div className="font-medium text-sm">Tema</div>
-            <div className="text-xs text-muted-foreground mt-1">
-              Verde DogDex com visual clean e legível.
-            </div>
+          <div className="text-xs text-muted-foreground mt-1">
+            {stats?.total_captured ?? 0} capturados · {stats?.total_discovered ?? 0} descobertos
           </div>
         </div>
-      </Card>
-    </div>
-  );
-}
-
-function DogDexPanel() {
-  return (
-    <div className="h-full w-full flex flex-col gap-4">
-      <div className="flex items-center gap-2 text-foreground">
-        <BookOpen className="h-5 w-5" />
-        <span className="font-semibold">DogDex</span>
-      </div>
-      <Card className="p-5 border-white/70 shadow-card bg-card/90">
-        <div className="text-sm text-muted-foreground mb-4">
-          Sua coleção de doguinhos capturados.
+        <div className="rounded-xl bg-muted/60 border p-3 text-xs text-muted-foreground">
+          Biscoitos normais renovam todo dia. Premium ganha carga semanal. Use no encontro após escanear o QR.
         </div>
-        <div className="grid grid-cols-2 gap-3">
-          {["Tobby", "Mel", "Thor", "Nina"].map((name) => (
-            <div
-              key={name}
-              className="rounded-xl border bg-muted/50 p-3 shadow-card transition-transform hover:-translate-y-0.5"
-            >
-              <div className="text-sm font-semibold">{name}</div>
-              <div className="text-xs text-muted-foreground">Registrado</div>
-            </div>
-          ))}
-        </div>
+        <Button variant="outline" className="w-full" onClick={() => signOut()}>
+          <LogOut className="h-4 w-4 mr-2" />
+          Sair
+        </Button>
+        <Button variant="ghost" className="w-full" asChild>
+          <Link to="/">Site</Link>
+        </Button>
       </Card>
     </div>
   );
@@ -225,109 +61,98 @@ function PanelShell({
   children: ReactNode;
 }) {
   return (
-    <div className="h-full w-full border-x border-white/30 bg-card/55 backdrop-blur-md shadow-soft p-4 pt-16 pb-6 flex flex-col">
-      <div className="mb-4 px-1">
+    <div className="h-full w-full border-x border-white/30 bg-card/55 backdrop-blur-md shadow-soft px-4 pt-24 pb-6 flex flex-col">
+      <div className="mb-3 px-1 shrink-0">
         <div className="inline-flex items-center rounded-full bg-primary/10 text-primary px-3 py-1 text-xs font-medium">
           {badge}
         </div>
-        <h1 className="font-heading text-2xl mt-3 text-foreground">{title}</h1>
-        <p className="text-sm text-muted-foreground mt-1">{subtitle}</p>
+        <h1 className="font-heading text-xl sm:text-2xl mt-2 text-foreground">{title}</h1>
+        <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">{subtitle}</p>
       </div>
       <div className="min-h-0 flex-1">{children}</div>
     </div>
   );
 }
 
-const Main = () => {
+function MainContent() {
   const scrollerRef = useRef<HTMLDivElement | null>(null);
   const [activeScreen, setActiveScreen] = useState(1);
 
   useEffect(() => {
     const el = scrollerRef.current;
     if (!el) return;
-    // começa no painel central (câmera)
     el.scrollLeft = el.clientWidth;
   }, []);
 
   function handleScroll() {
     const el = scrollerRef.current;
     if (!el) return;
-    const screen = Math.round(el.scrollLeft / el.clientWidth);
-    const clamped = Math.max(0, Math.min(2, screen));
-    if (clamped !== activeScreen) {
-      setActiveScreen(clamped);
-    }
+    setActiveScreen(Math.max(0, Math.min(2, Math.round(el.scrollLeft / el.clientWidth))));
   }
 
-  const currentLabel =
-    activeScreen === 0 ? "Configurações" : activeScreen === 1 ? "Câmera" : "DogDex";
+  const labels = ["Config", "Scanner", "DogDex"] as const;
 
   return (
     <div className="relative h-[100dvh] w-screen overflow-hidden bg-background">
       <div className="absolute inset-0 gradient-warm" />
-      <div className="pointer-events-none absolute top-16 right-8 h-64 w-64 rounded-full bg-primary/10 blur-3xl" />
-      <div className="pointer-events-none absolute bottom-16 left-8 h-72 w-72 rounded-full bg-secondary/10 blur-3xl" />
+      <div className="pointer-events-none absolute top-20 right-6 h-48 w-48 rounded-full bg-primary/10 blur-3xl" />
+      <div className="pointer-events-none absolute bottom-20 left-6 h-56 w-56 rounded-full bg-secondary/10 blur-3xl" />
 
-      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30 w-[92vw] max-w-sm rounded-full border border-white/80 bg-card/85 backdrop-blur px-3 py-1.5 shadow-card">
-        <div className="flex items-center justify-center gap-2 text-[11px]">
-          <span
-            className={`font-medium ${activeScreen === 0 ? "text-foreground" : "text-muted-foreground"}`}
-          >
-            Config
-          </span>
-          <span className="text-muted-foreground">•</span>
-          <span
-            className={`font-medium ${activeScreen === 1 ? "text-foreground" : "text-muted-foreground"}`}
-          >
-            Câmera
-          </span>
-          <span className="text-muted-foreground">•</span>
-          <span
-            className={`font-medium ${activeScreen === 2 ? "text-foreground" : "text-muted-foreground"}`}
-          >
-            DogDex
-          </span>
+      <div className="absolute top-3 left-0 right-0 z-30 flex flex-col items-center gap-2 px-3">
+        <BiscuitHUD />
+        <div className="w-full max-w-xs rounded-full border border-white/80 bg-card/90 backdrop-blur px-4 py-1.5 shadow-card">
+          <div className="flex justify-center gap-3 text-[11px]">
+            {labels.map((label, i) => (
+              <span
+                key={label}
+                className={
+                  activeScreen === i
+                    ? "font-bold text-foreground"
+                    : "text-muted-foreground"
+                }
+              >
+                {label}
+              </span>
+            ))}
+          </div>
         </div>
       </div>
 
       <div
         ref={scrollerRef}
         onScroll={handleScroll}
-        className="no-scrollbar relative z-20 h-full w-full overflow-x-auto overflow-y-hidden snap-x snap-mandatory scroll-smooth flex touch-pan-x"
+        className="no-scrollbar relative z-20 h-full w-full overflow-x-auto overflow-y-hidden snap-x snap-mandatory scroll-smooth flex"
       >
         <section className="snap-start shrink-0 w-screen h-[100dvh]">
-          <PanelShell
-            badge="Tela lateral"
-            title="Configurações"
-            subtitle="Ajuste permissões, notificações e preferências."
-          >
+          <PanelShell badge="Conta" title="Configurações" subtitle="Perfil e progresso da coleção.">
             <SettingsPanel />
           </PanelShell>
         </section>
 
         <section className="snap-start shrink-0 w-screen h-[100dvh]">
           <PanelShell
-            badge="Tela principal"
-            title="Capturar doguinhos"
-            subtitle="Aponte a câmera para registrar novos amigos do campus."
+            badge="Captura"
+            title="Encontros"
+            subtitle="Escaneie a coleira — a tela de batalha abre sozinha."
           >
-            <CameraPanel />
+            <QrScannerPanel />
           </PanelShell>
         </section>
 
         <section className="snap-start shrink-0 w-screen h-[100dvh]">
-          <PanelShell
-            badge="Tela lateral"
-            title="DogDex"
-            subtitle="Acompanhe sua coleção e progresso de capturas."
-          >
-            <DogDexPanel />
+          <PanelShell badge="Coleção" title="DogDex" subtitle="Registre, capture e evolua cada doguinho.">
+            <DogDexGrid />
           </PanelShell>
         </section>
       </div>
     </div>
   );
-};
+}
+
+const Main = () => (
+  <GameProvider>
+    <MainContent />
+  </GameProvider>
+);
 
 export default Main;
-
