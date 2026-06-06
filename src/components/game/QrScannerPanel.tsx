@@ -23,12 +23,27 @@ export function QrScannerPanel() {
   const { resolveQr } = useGameActions();
   const busyRef = useRef(false);
   const [cameraDebug, setCameraDebug] = useState<string | null>(null);
+  const scannerContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     return () => {
       scannerRef.current?.stop().catch(() => {});
     };
   }, []);
+
+  useEffect(() => {
+    if (!scanning || !scannerContainerRef.current) return;
+    const container = scannerContainerRef.current;
+    const checkSize = () => {
+      const { width, height } = container.getBoundingClientRect();
+      const debug = `Scanner container: ${width}x${height}px`;
+      console.debug(debug);
+      setCameraDebug((prev) => (prev ? prev + "\n" + debug : debug));
+    };
+    checkSize();
+    const timer = setTimeout(checkSize, 500);
+    return () => clearTimeout(timer);
+  }, [scanning]);
 
   async function openEncounter(token: string) {
     const normalized = token.trim().toUpperCase();
@@ -95,7 +110,8 @@ export function QrScannerPanel() {
         const c = scannerRef.current.getRunningTrackCapabilities();
         const info = { settings: s, capabilities: c };
         console.debug("QR camera info:", info);
-        setCameraDebug(JSON.stringify(info, null, 2));
+        const debugText = `Camera iniciada\nResolução: ${s.width}x${s.height}\nFrameRate: ${s.frameRate}fps\nDeviceId: ${s.deviceId?.slice(0, 8)}...`;
+        setCameraDebug(debugText);
       } catch (err) {
         console.debug("Unable to read running track settings", err);
       }
@@ -163,7 +179,9 @@ export function QrScannerPanel() {
         </div>
       )}
 
-      <Card className="relative flex-1 min-h-[200px] overflow-hidden border-white/70 shadow-soft bg-black/90">
+      <Card className={`relative flex-1 min-h-[200px] overflow-hidden border-white/70 shadow-soft ${
+        scanning ? "bg-transparent" : "bg-black/90"
+      }`}>
         {!scanning && !error && (
           <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center gap-3 z-10 bg-card/90">
             <img src={scannerImg} alt="" className="h-20 w-20 object-contain opacity-90" />
@@ -185,7 +203,14 @@ export function QrScannerPanel() {
             <div className="w-56 h-56 border-2 border-primary rounded-lg shadow-[0_0_0_9999px_rgba(0,0,0,0.45)] scan-corner-pulse" />
           </div>
         )}
-        <div id={SCANNER_ID} className={`w-full h-full min-h-[220px] ${scanning ? "" : "hidden"}`} />
+        <div
+          ref={scannerContainerRef}
+          id={SCANNER_ID}
+          className={`w-full h-full min-h-[220px] ${scanning ? "" : "hidden"}`}
+          style={{
+            backgroundColor: scanning ? "#000" : "transparent",
+          }}
+        />
       </Card>
 
       {cameraDebug && (
