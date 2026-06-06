@@ -56,8 +56,8 @@ export function QrScannerPanel() {
       if (!scannerRef.current) scannerRef.current = new Html5Qrcode(SCANNER_ID);
       // Prefer enumerating cameras and selecting a rear camera on mobile devices.
       // Fall back to a facingMode preference if enumeration isn't available.
-      let cameraConfig: string | { facingMode: { ideal: string } } = {
-        facingMode: { ideal: "environment" },
+      let cameraConfig: string | { facingMode: string } = {
+        facingMode: "environment",
       };
       try {
         const cams = await Html5Qrcode.getCameras();
