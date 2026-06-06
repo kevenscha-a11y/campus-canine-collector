@@ -22,6 +22,7 @@ export function QrScannerPanel() {
   const [lastToken, setLastToken] = useState<string | null>(null);
   const { resolveQr } = useGameActions();
   const busyRef = useRef(false);
+  const [cameraDebug, setCameraDebug] = useState<string | null>(null);
 
   useEffect(() => {
     return () => {
@@ -52,6 +53,17 @@ export function QrScannerPanel() {
 
   async function startScanner() {
     setError(null);
+    // Require secure context when opened from mobile over network
+    if (
+      window.location.protocol !== "https:" &&
+      window.location.hostname !== "localhost" &&
+      window.location.hostname !== "127.0.0.1"
+    ) {
+      setError(
+        "Acesso à câmera pode requerer HTTPS ou localhost. Abra o site via https ou em localhost."
+      );
+      return;
+    }
     try {
       if (!scannerRef.current) scannerRef.current = new Html5Qrcode(SCANNER_ID);
       // Prefer enumerating cameras and selecting a rear camera on mobile devices.
@@ -77,6 +89,16 @@ export function QrScannerPanel() {
         (decoded) => openEncounter(decoded),
         () => {},
       );
+      // Try to capture running track settings for debug (helps diagnose black screen)
+      try {
+        const s = scannerRef.current.getRunningTrackSettings();
+        const c = scannerRef.current.getRunningTrackCapabilities();
+        const info = { settings: s, capabilities: c };
+        console.debug("QR camera info:", info);
+        setCameraDebug(JSON.stringify(info, null, 2));
+      } catch (err) {
+        console.debug("Unable to read running track settings", err);
+      }
       setScanning(true);
     } catch (e) {
       setError(
@@ -165,6 +187,12 @@ export function QrScannerPanel() {
         )}
         <div id={SCANNER_ID} className={`w-full h-full min-h-[220px] ${scanning ? "" : "hidden"}`} />
       </Card>
+
+      {cameraDebug && (
+        <pre className="fixed left-2 bottom-2 z-50 max-w-xs max-h-56 overflow-auto text-xs p-2 bg-black/80 text-white rounded">
+          {cameraDebug}
+        </pre>
+      )}
 
       <p className="text-[10px] text-center text-muted-foreground shrink-0">
         Dica: teste com <button type="button" className="text-primary underline" onClick={() => openEncounter("CAMPUS-001")}>CAMPUS-001</button>
