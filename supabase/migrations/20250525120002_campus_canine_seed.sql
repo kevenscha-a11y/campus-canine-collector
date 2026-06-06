@@ -1,0 +1,3 @@
+-- Seed data removed: no example dogs, QR codes or community goals included.
+-- If you need to seed real initial data, create a migration with
+-- production-ready entries and run it explicitly in the target environment.
