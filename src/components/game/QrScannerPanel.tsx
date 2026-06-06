@@ -54,8 +54,25 @@ export function QrScannerPanel() {
     setError(null);
     try {
       if (!scannerRef.current) scannerRef.current = new Html5Qrcode(SCANNER_ID);
+      // Prefer enumerating cameras and selecting a rear camera on mobile devices.
+      // Fall back to a facingMode preference if enumeration isn't available.
+      let cameraConfig: string | { facingMode: { ideal: string } } = {
+        facingMode: { ideal: "environment" },
+      };
+      try {
+        const cams = await Html5Qrcode.getCameras();
+        if (cams && cams.length > 0) {
+          const preferred =
+            cams.find((c) => /rear|back|environment|traseira|trasera/i.test(c.label)) ||
+            cams[0];
+          cameraConfig = preferred.id;
+        }
+      } catch {
+        // If camera enumeration fails, keep facingMode fallback above.
+      }
+
       await scannerRef.current.start(
-        { facingMode: "environment" },
+        cameraConfig,
         { fps: 12, qrbox: { width: 240, height: 240 } },
         (decoded) => openEncounter(decoded),
         () => {},
