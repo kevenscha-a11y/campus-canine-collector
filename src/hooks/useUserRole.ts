@@ -1,6 +1,10 @@
 import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+<<<<<<< HEAD
 import { supabase } from "@/lib/supabase";
+=======
+import { supabase, isSupabaseConfigured } from "@/lib/supabase";
+>>>>>>> master
 import type { UserRole } from "@/types/database";
 
 export function useUserRole() {
@@ -17,11 +21,20 @@ export function useUserRole() {
       return;
     }
 
+<<<<<<< HEAD
+=======
+    if (!isSupabaseConfigured) {
+      setRole("user");
+      return;
+    }
+
+>>>>>>> master
     async function fetchUserRole() {
       setLoading(true);
       setError(null);
 
       try {
+<<<<<<< HEAD
         const { data, error: err } = await supabase
           .from("profiles")
           .select("role")
@@ -38,6 +51,35 @@ export function useUserRole() {
         const message = e instanceof Error ? e.message : "Unknown error";
         setError(message);
         setRole(null);
+=======
+        // Tenta com coluna role (requer migration add_admin_roles)
+        const { data, error: roleErr } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", user.id)
+          .maybeSingle();
+
+        if (!roleErr && data?.role) {
+          setRole(data.role as UserRole);
+          return;
+        }
+
+        // Fallback: tabela existe mas coluna role ainda não foi migrada
+        const { data: profile, error: profileErr } = await supabase
+          .from("profiles")
+          .select("id")
+          .eq("id", user.id)
+          .maybeSingle();
+
+        if (profileErr) {
+          setRole("user");
+          return;
+        }
+
+        setRole(profile ? "user" : "user");
+      } catch {
+        setRole("user");
+>>>>>>> master
       } finally {
         setLoading(false);
       }
@@ -54,8 +96,12 @@ export function useUserRole() {
         .eq("id", userId);
 
       if (error) throw error;
+<<<<<<< HEAD
       
       // Se for o usuário atual, atualiza o estado local
+=======
+
+>>>>>>> master
       if (userId === user?.id) {
         setRole("admin");
       }

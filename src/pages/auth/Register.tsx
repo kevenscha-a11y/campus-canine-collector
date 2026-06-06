@@ -8,7 +8,11 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 
 export default function Register() {
+<<<<<<< HEAD
   const { signUp } = useAuth();
+=======
+  const { signUp, isConfigured } = useAuth();
+>>>>>>> master
   const navigate = useNavigate();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -41,6 +45,14 @@ export default function Register() {
 
   return (
     <AuthLayout title="Cadastro" subtitle="Crie sua conta de treinador canino.">
+<<<<<<< HEAD
+=======
+      {!isConfigured && (
+        <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-4">
+          Modo local ativo — sua conta ficará salva neste navegador, sem Supabase.
+        </p>
+      )}
+>>>>>>> master
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <Label htmlFor="name">Nome</Label>

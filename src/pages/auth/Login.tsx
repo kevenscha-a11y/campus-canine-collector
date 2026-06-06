@@ -8,7 +8,11 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 
 export default function Login() {
+<<<<<<< HEAD
   const { signIn } = useAuth();
+=======
+  const { signIn, isConfigured } = useAuth();
+>>>>>>> master
   const navigate = useNavigate();
   const location = useLocation();
   const from = (location.state as { from?: { pathname: string } })?.from?.pathname ?? "/app";
@@ -42,6 +46,14 @@ export default function Login() {
 
   return (
     <AuthLayout title="Entrar" subtitle="Continue sua jornada na DogDex.">
+<<<<<<< HEAD
+=======
+      {!isConfigured && (
+        <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-4">
+          Modo local ativo — crie uma conta ou entre com qualquer e-mail/senha (dados salvos no navegador).
+        </p>
+      )}
+>>>>>>> master
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <Label htmlFor="email">E-mail</Label>
