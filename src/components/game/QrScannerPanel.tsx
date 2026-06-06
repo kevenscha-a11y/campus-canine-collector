@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Html5QrcodeScanner } from "html5-qrcode";
+import { Html5Qrcode } from "html5-qrcode";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { QrCode, RefreshCw, Keyboard } from "lucide-react";
@@ -20,17 +20,48 @@ export function QrScannerPanel() {
   const [lastToken, setLastToken] = useState<string | null>(null);
   const { resolveQr } = useGameActions();
   const containerRef = useRef<HTMLDivElement>(null);
-  const scannerRef = useRef<Html5QrcodeScanner | null>(null);
+  const scannerRef = useRef<Html5Qrcode | null>(null);
   const busyRef = useRef(false);
 
   useEffect(() => {
-    return () => {
-      if (scannerRef.current?.getState && scannerRef.current.getState() !== 5) {
-        // 5 = NOT_STARTED
-        scannerRef.current?.clear().catch(() => {});
+    // Attempt to auto-start camera on mount (prefer rear camera)
+    (async () => {
+      try {
+        await attemptAutoStart();
+      } catch (e) {
+        console.debug("Auto-start failed", e);
       }
+    })();
+
+    return () => {
+      scannerRef.current?.stop?.().catch(() => {});
     };
   }, []);
+
+  async function attemptAutoStart() {
+    // Only try in secure contexts
+    if (
+      window.location.protocol !== "https:" &&
+      window.location.hostname !== "localhost" &&
+      window.location.hostname !== "127.0.0.1"
+    ) {
+      return;
+    }
+
+    try {
+      const cams = await Html5Qrcode.getCameras();
+      const preferred =
+        cams.find((c) => /rear|back|environment|traseira|trasera/i.test(c.label)) || cams[0];
+      if (preferred && preferred.id) {
+        await startScanner(preferred.id);
+        return;
+      }
+    } catch (e) {
+      // ignore and fallback to facingMode
+    }
+
+    await startScanner();
+  }
 
   async function openEncounter(token: string) {
     const normalized = token.trim().toUpperCase();
@@ -56,8 +87,7 @@ export function QrScannerPanel() {
       busyRef.current = false;
     }
   }
-
-  async function startScanner() {
+  async function startScanner(preferredCameraId?: string) {
     setError(null);
 
     if (
@@ -75,27 +105,20 @@ export function QrScannerPanel() {
     }
 
     try {
+      // clear any previous content
       containerRef.current.innerHTML = "";
 
-      scannerRef.current = new Html5QrcodeScanner(
-        SCANNER_ID,
-        {
-          fps: 10,
-          qrbox: { width: 250, height: 250 },
-          showTorchButtonIfSupported: true,
-          useBarCodeDetectorIfSupported: true,
-          rememberLastUsedCamera: true,
-          aspectRatio: 1.0,
-        },
-        false
-      );
+      if (!scannerRef.current) scannerRef.current = new Html5Qrcode(SCANNER_ID);
 
-      scannerRef.current.render(
-        (decodedText) => {
-          openEncounter(decodedText);
-        },
-        (errorMessage) => {
-          // Silently ignore QR decode errors
+      let cameraConfig: string | MediaTrackConstraints = { facingMode: "environment" };
+      if (preferredCameraId) cameraConfig = preferredCameraId;
+
+      await scannerRef.current.start(
+        cameraConfig,
+        { fps: 12, qrbox: { width: 250, height: 250 } },
+        (decoded) => openEncounter(decoded),
+        (err) => {
+          // ignore per-frame decode errors
         }
       );
 
@@ -110,6 +133,7 @@ export function QrScannerPanel() {
   async function stopScanner() {
     try {
       if (scannerRef.current) {
+        await scannerRef.current.stop();
         await scannerRef.current.clear();
       }
     } catch (err) {
