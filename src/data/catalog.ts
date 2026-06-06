@@ -27,20 +27,6 @@ const def = (
   is_active: true,
 });
 
-<<<<<<< HEAD
-// Removed example DOG_CATALOG data. The app should rely on the remote
-// Supabase database for real catalog data. Keep helpers but they return
-// undefined when no local fallback is available.
-
-export const DOG_CATALOG: CatalogDog[] = [];
-
-export function findDogByQrToken(_token: string): CatalogDog | undefined {
-  return undefined;
-}
-
-export function findDogById(_id: string): CatalogDog | undefined {
-  return undefined;
-=======
 export const DOG_CATALOG: CatalogDog[] = [
   def(1, "Rex", "Vira-lata", 3, "Guardião do pátio central. Adora correr atrás da bola.", "bold", "common", "🐕"),
   def(2, "Thor", "Golden Retriever", 5, "O professor favorito dos alunos na biblioteca.", "playful", "rare", "🦮"),
@@ -63,5 +49,4 @@ export function findDogByQrToken(token: string): CatalogDog | undefined {
 
 export function findDogById(id: string): CatalogDog | undefined {
   return DOG_CATALOG.find((d) => d.id === id);
->>>>>>> master
 }

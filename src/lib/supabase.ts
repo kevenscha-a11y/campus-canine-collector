@@ -1,17 +1,3 @@
-<<<<<<< HEAD
-import { createClient } from "@supabase/supabase-js";
-import type { Database } from "@/types/database";
-
-const url = import.meta.env.VITE_SUPABASE_URL;
-const supabaseKey =
-  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ??
-  import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-export const supabase = createClient<Database>(
-  url ?? "https://placeholder.supabase.co",
-  supabaseKey ?? "placeholder",
-  {
-=======
 import { createBrowserClient } from "@supabase/ssr";
 import type { Database } from "@/types/database";
 
@@ -49,18 +35,11 @@ export const isSupabaseConfigured = isRealUrl(url) && isRealKey(supabaseKey);
 
 function createSupabaseClient() {
   return createBrowserClient<Database>(url!, supabaseKey!, {
->>>>>>> master
     auth: {
       persistSession: true,
       autoRefreshToken: true,
       detectSessionInUrl: true,
     },
-<<<<<<< HEAD
-  }
-);
-
-export const isSupabaseConfigured = Boolean(url && supabaseKey);
-=======
   });
 }
 
@@ -74,4 +53,3 @@ export const supabase = isSupabaseConfigured
         detectSessionInUrl: false,
       },
     });
->>>>>>> master

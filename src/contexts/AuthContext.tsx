@@ -9,10 +9,7 @@ import {
 } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
-<<<<<<< HEAD
-=======
 import { localAuth } from "@/lib/localAuth";
->>>>>>> master
 import {
   ensureUserGameRows,
   isEmailVerified,
@@ -49,15 +46,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     async function initializeAuth() {
       try {
-<<<<<<< HEAD
-=======
         if (!isSupabaseConfigured) {
           const localSession = localAuth.getSession();
           if (mounted) setSession(localSession);
           return;
         }
 
->>>>>>> master
         const { data: { session: initialSession } } = await supabase.auth.getSession();
         if (mounted) {
           setSession(initialSession);
@@ -67,10 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       } catch (error) {
         console.error("Auth init error:", error);
-<<<<<<< HEAD
-=======
         if (mounted) setSession(localAuth.getSession());
->>>>>>> master
       } finally {
         if (mounted) {
           setLoading(false);
@@ -80,18 +71,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     initializeAuth();
 
-<<<<<<< HEAD
-    const { data: authListener } = supabase.auth.onAuthStateChange(async (_event, s) => {
-      if (mounted) {
-        setSession(s);
-        if (s?.user) {
-          ensureUserGameRows(s.user).catch(() => {
-            /* tabelas podem não existir ainda */
-          });
-        }
-      }
-    });
-=======
     let authListener: { subscription: { unsubscribe: () => void } } | undefined;
 
     if (isSupabaseConfigured) {
@@ -107,7 +86,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
       authListener = data;
     }
->>>>>>> master
 
     return () => {
       mounted = false;
@@ -116,16 +94,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signUp = useCallback(async (email: string, password: string, name: string) => {
-<<<<<<< HEAD
-    const { data, error } = await supabase.auth.signUp({
-      email: email.trim(),
-      password,
-      options: {
-        data: { full_name: name.trim() },
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-      },
-    });
-=======
     if (!isSupabaseConfigured) {
       const { error, session } = localAuth.signUp(email, password, name);
       if (error) return { error };
@@ -147,7 +115,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (e) {
       return { error: translateAuthError(e instanceof Error ? e.message : "Erro de rede") };
     }
->>>>>>> master
 
     if (error) {
       return { error: translateAuthError(error.message) };
@@ -173,12 +140,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signIn = useCallback(async (email: string, password: string) => {
-<<<<<<< HEAD
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
-      password,
-    });
-=======
     if (!isSupabaseConfigured) {
       const { error, session } = localAuth.signIn(email, password);
       if (error) return { error };
@@ -196,7 +157,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (e) {
       return { error: translateAuthError(e instanceof Error ? e.message : "Erro de rede") };
     }
->>>>>>> master
 
     if (error) {
       return { error: translateAuthError(error.message) };
@@ -224,25 +184,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signOut = useCallback(async () => {
-<<<<<<< HEAD
-    await supabase.auth.signOut();
-=======
     if (isSupabaseConfigured) {
       await supabase.auth.signOut();
     } else {
       localAuth.signOut();
     }
->>>>>>> master
     setSession(null);
   }, []);
 
   const resetPassword = useCallback(async (email: string) => {
-<<<<<<< HEAD
-=======
     if (!isSupabaseConfigured) {
       return { error: "Recuperação de senha indisponível no modo local." };
     }
->>>>>>> master
     const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
       redirectTo: `${window.location.origin}/auth/reset-password`,
     });
@@ -250,12 +203,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const resendVerification = useCallback(async (email: string) => {
-<<<<<<< HEAD
-=======
     if (!isSupabaseConfigured) {
       return { error: "Verificação de e-mail indisponível no modo local." };
     }
->>>>>>> master
     if (!email.trim()) {
       return { error: "Informe o e-mail usado no cadastro." };
     }
@@ -268,12 +218,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const refreshSession = useCallback(async () => {
-<<<<<<< HEAD
-=======
     if (!isSupabaseConfigured) {
       return localAuth.getSession();
     }
->>>>>>> master
     const { data, error } = await supabase.auth.refreshSession();
     if (error) return null;
     setSession(data.session);

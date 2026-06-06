@@ -1,9 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-<<<<<<< HEAD
-import { Html5Qrcode } from "html5-qrcode";
-=======
 import { Html5Qrcode, type CameraDevice } from "html5-qrcode";
->>>>>>> master
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { QrCode, RefreshCw, Keyboard } from "lucide-react";
@@ -15,10 +11,6 @@ import scannerImg from "@/assets/scanner.png";
 
 const SCANNER_ID = "qr-reader-region";
 
-<<<<<<< HEAD
-export function QrScannerPanel() {
-  const [scanning, setScanning] = useState(false);
-=======
 const SCANNER_CONFIG = {
   fps: 10,
   qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
@@ -92,7 +84,6 @@ function isSecureContext(): boolean {
 export function QrScannerPanel() {
   const [scanning, setScanning] = useState(false);
   const [starting, setStarting] = useState(false);
->>>>>>> master
   const [error, setError] = useState<string | null>(null);
   const [manualToken, setManualToken] = useState("");
   const [showManual, setShowManual] = useState(false);
@@ -104,45 +95,6 @@ export function QrScannerPanel() {
   const busyRef = useRef(false);
 
   useEffect(() => {
-<<<<<<< HEAD
-    // Attempt to auto-start camera on mount (prefer rear camera)
-    (async () => {
-      try {
-        await attemptAutoStart();
-      } catch (e) {
-        console.debug("Auto-start failed", e);
-      }
-    })();
-
-    return () => {
-      scannerRef.current?.stop?.().catch(() => {});
-    };
-  }, []);
-
-  async function attemptAutoStart() {
-    // Only try in secure contexts
-    if (
-      window.location.protocol !== "https:" &&
-      window.location.hostname !== "localhost" &&
-      window.location.hostname !== "127.0.0.1"
-    ) {
-      return;
-    }
-
-    try {
-      const cams = await Html5Qrcode.getCameras();
-      const preferred =
-        cams.find((c) => /rear|back|environment|traseira|trasera/i.test(c.label)) || cams[0];
-      if (preferred && preferred.id) {
-        await startScanner(preferred.id);
-        return;
-      }
-    } catch (e) {
-      // ignore and fallback to facingMode
-    }
-
-    await startScanner();
-=======
     return () => {
       void stopScanner();
     };
@@ -157,7 +109,6 @@ export function QrScannerPanel() {
       containerRef.current.prepend(el);
     }
     return el;
->>>>>>> master
   }
 
   async function openEncounter(token: string) {
@@ -184,16 +135,6 @@ export function QrScannerPanel() {
       busyRef.current = false;
     }
   }
-<<<<<<< HEAD
-  async function startScanner(preferredCameraId?: string) {
-    setError(null);
-
-    if (
-      window.location.protocol !== "https:" &&
-      window.location.hostname !== "localhost" &&
-      window.location.hostname !== "127.0.0.1"
-    ) {
-=======
 
   async function tryStartWithConfig(
     scanner: Html5Qrcode,
@@ -221,45 +162,15 @@ export function QrScannerPanel() {
     setError(null);
 
     if (!isSecureContext()) {
->>>>>>> master
       setError("A câmera requer HTTPS ou acesso local (localhost).");
       return;
     }
 
-<<<<<<< HEAD
-    if (!containerRef.current) {
-=======
     if (!ensureScannerElement()) {
->>>>>>> master
       setError("Contentor da câmera não encontrado.");
       return;
     }
 
-<<<<<<< HEAD
-    try {
-      // clear any previous content
-      containerRef.current.innerHTML = "";
-
-      if (!scannerRef.current) scannerRef.current = new Html5Qrcode(SCANNER_ID);
-
-      let cameraConfig: string | MediaTrackConstraints = { facingMode: "environment" };
-      if (preferredCameraId) cameraConfig = preferredCameraId;
-
-      await scannerRef.current.start(
-        cameraConfig,
-        { fps: 12, qrbox: { width: 250, height: 250 } },
-        (decoded) => openEncounter(decoded),
-        (err) => {
-          // ignore per-frame decode errors
-        }
-      );
-
-      setScanning(true);
-    } catch (e) {
-      const message = e instanceof Error ? e.message : "Não foi possível acessar a câmera.";
-      setError(message);
-      console.error("Scanner error:", e);
-=======
     setStarting(true);
 
     try {
@@ -300,30 +211,22 @@ export function QrScannerPanel() {
       scannerRef.current = null;
     } finally {
       setStarting(false);
->>>>>>> master
     }
   }
 
   async function stopScanner() {
     try {
       if (scannerRef.current) {
-<<<<<<< HEAD
-        await scannerRef.current.stop();
-=======
         const state = scannerRef.current.getState();
         if (state === 2 /* SCANNING */) {
           await scannerRef.current.stop();
         }
->>>>>>> master
         await scannerRef.current.clear();
       }
     } catch (err) {
       console.error("Error stopping scanner:", err);
     }
-<<<<<<< HEAD
-=======
     scannerRef.current = null;
->>>>>>> master
     setScanning(false);
   }
 
@@ -337,10 +240,6 @@ export function QrScannerPanel() {
 
   return (
     <div className="h-full w-full flex flex-col gap-2 min-h-0">
-<<<<<<< HEAD
-      {/* Controls */}
-=======
->>>>>>> master
       <div className="flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2 text-foreground">
           <QrCode className="h-5 w-5" />
@@ -359,14 +258,6 @@ export function QrScannerPanel() {
           <Button
             variant="secondary"
             size="sm"
-<<<<<<< HEAD
-            onClick={scanning ? stopScanner : startScanner}
-            className="text-xs sm:text-sm"
-          >
-            <RefreshCw className="h-4 w-4 mr-1" />
-            <span className="hidden sm:inline">{scanning ? "Parar" : "Câmera"}</span>
-            <span className="sm:hidden">{scanning ? "Parar" : "QR"}</span>
-=======
             onClick={() => (scanning ? stopScanner() : startScanner())}
             disabled={starting}
             className="text-xs sm:text-sm"
@@ -376,15 +267,10 @@ export function QrScannerPanel() {
               {starting ? "Abrindo..." : scanning ? "Parar" : "Câmera"}
             </span>
             <span className="sm:hidden">{starting ? "..." : scanning ? "Parar" : "QR"}</span>
->>>>>>> master
           </Button>
         </div>
       </div>
 
-<<<<<<< HEAD
-      {/* Manual input */}
-=======
->>>>>>> master
       {showManual && (
         <div className="flex gap-1 sm:gap-2 shrink-0">
           <Input
@@ -403,30 +289,10 @@ export function QrScannerPanel() {
         </div>
       )}
 
-<<<<<<< HEAD
-      {/* Camera container - fills remaining space */}
-=======
->>>>>>> master
       <div
         ref={containerRef}
         className="relative flex-1 min-h-0 w-full rounded-lg overflow-hidden border border-white/20 bg-black"
       >
-<<<<<<< HEAD
-        {/* Scanner element will be rendered here by Html5QrcodeScanner */}
-        <div id={SCANNER_ID} className="w-full h-full" />
-
-        {/* Placeholder when not scanning */}
-        {!scanning && !error && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center p-3 text-center gap-2 z-10 bg-black/60 backdrop-blur-sm">
-            <img src={scannerImg} alt="" className="h-16 w-16 object-contain opacity-80" />
-            <p className="text-xs sm:text-sm text-muted-foreground max-w-xs leading-tight">
-              Clique no botão para ativar a câmera e aponte para o QR da coleira.
-            </p>
-          </div>
-        )}
-
-        {/* Error display */}
-=======
         <div id={SCANNER_ID} className="w-full h-full" />
 
         {!scanning && !error && (
@@ -443,7 +309,6 @@ export function QrScannerPanel() {
           </button>
         )}
 
->>>>>>> master
         {error && (
           <div className="absolute inset-0 z-10 flex items-center justify-center p-4 bg-black/80 text-center">
             <div className="text-xs sm:text-sm text-red-400 space-y-2">
@@ -452,12 +317,6 @@ export function QrScannerPanel() {
               <Button
                 variant="outline"
                 size="sm"
-<<<<<<< HEAD
-                onClick={() => setError(null)}
-                className="text-xs mt-2"
-              >
-                Fechar
-=======
                 onClick={() => {
                   setError(null);
                   startScanner();
@@ -465,17 +324,12 @@ export function QrScannerPanel() {
                 className="text-xs mt-2"
               >
                 Tentar novamente
->>>>>>> master
               </Button>
             </div>
           </div>
         )}
       </div>
 
-<<<<<<< HEAD
-      {/* Helper text */}
-=======
->>>>>>> master
       <p className="text-[10px] sm:text-xs text-center text-muted-foreground shrink-0">
         Teste:{" "}
         <button
@@ -487,10 +341,6 @@ export function QrScannerPanel() {
         </button>
       </p>
 
-<<<<<<< HEAD
-      {/* Encounter screen */}
-=======
->>>>>>> master
       {encounter && lastToken && (
         <EncounterScreen encounter={encounter} qrToken={lastToken} onClose={closeEncounter} />
       )}
