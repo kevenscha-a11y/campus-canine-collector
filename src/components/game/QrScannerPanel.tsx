@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Html5Qrcode } from "html5-qrcode";
-import { Card } from "@/components/ui/card";
+import { Html5QrcodeScanner } from "html5-qrcode";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { QrCode, RefreshCw, Keyboard } from "lucide-react";
@@ -13,7 +12,6 @@ import scannerImg from "@/assets/scanner.png";
 const SCANNER_ID = "qr-reader-region";
 
 export function QrScannerPanel() {
-  const scannerRef = useRef<Html5Qrcode | null>(null);
   const [scanning, setScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [manualToken, setManualToken] = useState("");
@@ -21,29 +19,18 @@ export function QrScannerPanel() {
   const [encounter, setEncounter] = useState<EncounterData | null>(null);
   const [lastToken, setLastToken] = useState<string | null>(null);
   const { resolveQr } = useGameActions();
+  const containerRef = useRef<HTMLDivElement>(null);
+  const scannerRef = useRef<Html5QrcodeScanner | null>(null);
   const busyRef = useRef(false);
-  const [cameraDebug, setCameraDebug] = useState<string | null>(null);
-  const scannerContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     return () => {
-      scannerRef.current?.stop().catch(() => {});
+      if (scannerRef.current?.getState && scannerRef.current.getState() !== 5) {
+        // 5 = NOT_STARTED
+        scannerRef.current?.clear().catch(() => {});
+      }
     };
   }, []);
-
-  useEffect(() => {
-    if (!scanning || !scannerContainerRef.current) return;
-    const container = scannerContainerRef.current;
-    const checkSize = () => {
-      const { width, height } = container.getBoundingClientRect();
-      const debug = `Scanner container: ${width}x${height}px`;
-      console.debug(debug);
-      setCameraDebug((prev) => (prev ? prev + "\n" + debug : debug));
-    };
-    checkSize();
-    const timer = setTimeout(checkSize, 500);
-    return () => clearTimeout(timer);
-  }, [scanning]);
 
   async function openEncounter(token: string) {
     const normalized = token.trim().toUpperCase();
@@ -57,10 +44,14 @@ export function QrScannerPanel() {
       const data = await resolveQr(normalized);
       setLastToken(normalized);
       setEncounter(data);
-      if (scanning) await scannerRef.current?.pause(true).catch(() => {});
+      if (scanning) {
+        await scannerRef.current?.pause?.();
+      }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "QR inválido");
-      if (scanning) await scannerRef.current?.resume().catch(() => {});
+      if (scanning) {
+        await scannerRef.current?.resume?.();
+      }
     } finally {
       busyRef.current = false;
     }
@@ -68,66 +59,61 @@ export function QrScannerPanel() {
 
   async function startScanner() {
     setError(null);
-    // Require secure context when opened from mobile over network
+
     if (
       window.location.protocol !== "https:" &&
       window.location.hostname !== "localhost" &&
       window.location.hostname !== "127.0.0.1"
     ) {
-      setError(
-        "Acesso à câmera pode requerer HTTPS ou localhost. Abra o site via https ou em localhost."
-      );
+      setError("A câmera requer HTTPS ou acesso local (localhost).");
       return;
     }
-    try {
-      if (!scannerRef.current) scannerRef.current = new Html5Qrcode(SCANNER_ID);
-      // Prefer enumerating cameras and selecting a rear camera on mobile devices.
-      // Fall back to a facingMode preference if enumeration isn't available.
-      let cameraConfig: string | { facingMode: string } = {
-        facingMode: "environment",
-      };
-      try {
-        const cams = await Html5Qrcode.getCameras();
-        if (cams && cams.length > 0) {
-          const preferred =
-            cams.find((c) => /rear|back|environment|traseira|trasera/i.test(c.label)) ||
-            cams[0];
-          cameraConfig = preferred.id;
-        }
-      } catch {
-        // If camera enumeration fails, keep facingMode fallback above.
-      }
 
-      await scannerRef.current.start(
-        cameraConfig,
-        { fps: 12, qrbox: { width: 240, height: 240 } },
-        (decoded) => openEncounter(decoded),
-        () => {},
+    if (!containerRef.current) {
+      setError("Contentor da câmera não encontrado.");
+      return;
+    }
+
+    try {
+      containerRef.current.innerHTML = "";
+
+      scannerRef.current = new Html5QrcodeScanner(
+        SCANNER_ID,
+        {
+          fps: 10,
+          qrbox: { width: 250, height: 250 },
+          showTorchButtonIfSupported: true,
+          useBarCodeDetectorIfSupported: true,
+          rememberLastUsedCamera: true,
+          aspectRatio: 1.0,
+        },
+        false
       );
-      // Try to capture running track settings for debug (helps diagnose black screen)
-      try {
-        const s = scannerRef.current.getRunningTrackSettings();
-        const c = scannerRef.current.getRunningTrackCapabilities();
-        const info = { settings: s, capabilities: c };
-        console.debug("QR camera info:", info);
-        const debugText = `Camera iniciada\nResolução: ${s.width}x${s.height}\nFrameRate: ${s.frameRate}fps\nDeviceId: ${s.deviceId?.slice(0, 8)}...`;
-        setCameraDebug(debugText);
-      } catch (err) {
-        console.debug("Unable to read running track settings", err);
-      }
+
+      scannerRef.current.render(
+        (decodedText) => {
+          openEncounter(decodedText);
+        },
+        (errorMessage) => {
+          // Silently ignore QR decode errors
+        }
+      );
+
       setScanning(true);
     } catch (e) {
-      setError(
-        e instanceof Error ? e.message : "Não foi possível acessar a câmera.",
-      );
+      const message = e instanceof Error ? e.message : "Não foi possível acessar a câmera.";
+      setError(message);
+      console.error("Scanner error:", e);
     }
   }
 
   async function stopScanner() {
     try {
-      await scannerRef.current?.stop();
-    } catch {
-      /* ignore */
+      if (scannerRef.current) {
+        await scannerRef.current.clear();
+      }
+    } catch (err) {
+      console.error("Error stopping scanner:", err);
     }
     setScanning(false);
   }
@@ -135,22 +121,26 @@ export function QrScannerPanel() {
   function closeEncounter() {
     setEncounter(null);
     setLastToken(null);
-    if (scanning) scannerRef.current?.resume().catch(() => {});
+    if (scanning) {
+      scannerRef.current?.resume?.().catch(() => {});
+    }
   }
 
   return (
-    <div className="h-full w-full flex flex-col gap-3 min-h-0">
+    <div className="h-full w-full flex flex-col gap-2 min-h-0">
+      {/* Controls */}
       <div className="flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2 text-foreground">
           <QrCode className="h-5 w-5" />
-          <span className="font-semibold">Scanner</span>
+          <span className="font-semibold text-sm">Scanner</span>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-1 sm:gap-2">
           <Button
             variant="ghost"
             size="sm"
             onClick={() => setShowManual((s) => !s)}
             aria-label="Digitar código"
+            className="h-8 w-8 p-0"
           >
             <Keyboard className="h-4 w-4" />
           </Button>
@@ -158,71 +148,84 @@ export function QrScannerPanel() {
             variant="secondary"
             size="sm"
             onClick={scanning ? stopScanner : startScanner}
+            className="text-xs sm:text-sm"
           >
             <RefreshCw className="h-4 w-4 mr-1" />
-            {scanning ? "Parar" : "Câmera"}
+            <span className="hidden sm:inline">{scanning ? "Parar" : "Câmera"}</span>
+            <span className="sm:hidden">{scanning ? "Parar" : "QR"}</span>
           </Button>
         </div>
       </div>
 
+      {/* Manual input */}
       {showManual && (
-        <div className="flex gap-2 shrink-0">
+        <div className="flex gap-1 sm:gap-2 shrink-0">
           <Input
             placeholder="CAMPUS-001"
             value={manualToken}
             onChange={(e) => setManualToken(e.target.value.toUpperCase())}
-            className="font-mono text-sm"
+            className="font-mono text-xs sm:text-sm h-8 sm:h-10"
           />
-          <Button variant="hero" onClick={() => openEncounter(manualToken)}>
+          <Button
+            variant="hero"
+            onClick={() => openEncounter(manualToken)}
+            className="text-xs sm:text-sm"
+          >
             Ir
           </Button>
         </div>
       )}
 
-      <Card className={`relative flex-1 min-h-[200px] overflow-hidden border-white/70 shadow-soft ${
-        scanning ? "bg-transparent" : "bg-black/90"
-      }`}>
+      {/* Camera container - fills remaining space */}
+      <div
+        ref={containerRef}
+        className="relative flex-1 min-h-0 w-full rounded-lg overflow-hidden border border-white/20 bg-black"
+      >
+        {/* Scanner element will be rendered here by Html5QrcodeScanner */}
+        <div id={SCANNER_ID} className="w-full h-full" />
+
+        {/* Placeholder when not scanning */}
         {!scanning && !error && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center gap-3 z-10 bg-card/90">
-            <img src={scannerImg} alt="" className="h-20 w-20 object-contain opacity-90" />
-            <p className="text-sm text-muted-foreground max-w-xs">
-              Aponte para o QR da coleira ou digite o código manualmente.
+          <div className="absolute inset-0 flex flex-col items-center justify-center p-3 text-center gap-2 z-10 bg-black/60 backdrop-blur-sm">
+            <img src={scannerImg} alt="" className="h-16 w-16 object-contain opacity-80" />
+            <p className="text-xs sm:text-sm text-muted-foreground max-w-xs leading-tight">
+              Clique no botão para ativar a câmera e aponte para o QR da coleira.
             </p>
-            <Button variant="hero" size="lg" onClick={startScanner}>
-              Ativar câmera
-            </Button>
           </div>
         )}
+
+        {/* Error display */}
         {error && (
-          <div className="absolute inset-0 z-10 flex items-center justify-center p-6 bg-card text-center text-sm text-muted-foreground">
-            {error}
+          <div className="absolute inset-0 z-10 flex items-center justify-center p-4 bg-black/80 text-center">
+            <div className="text-xs sm:text-sm text-red-400 space-y-2">
+              <p className="font-semibold">Erro na câmera</p>
+              <p className="text-muted-foreground">{error}</p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setError(null)}
+                className="text-xs mt-2"
+              >
+                Fechar
+              </Button>
+            </div>
           </div>
         )}
-        {scanning && (
-          <div className="absolute inset-0 pointer-events-none z-20 flex items-center justify-center">
-            <div className="w-56 h-56 border-2 border-primary rounded-lg shadow-[0_0_0_9999px_rgba(0,0,0,0.45)] scan-corner-pulse" />
-          </div>
-        )}
-        <div
-          ref={scannerContainerRef}
-          id={SCANNER_ID}
-          className={`w-full h-full min-h-[220px] ${scanning ? "" : "hidden"}`}
-          style={{
-            backgroundColor: scanning ? "#000" : "transparent",
-          }}
-        />
-      </Card>
+      </div>
 
-      {cameraDebug && (
-        <pre className="fixed left-2 bottom-2 z-50 max-w-xs max-h-56 overflow-auto text-xs p-2 bg-black/80 text-white rounded">
-          {cameraDebug}
-        </pre>
-      )}
-
-      <p className="text-[10px] text-center text-muted-foreground shrink-0">
-        Dica: teste com <button type="button" className="text-primary underline" onClick={() => openEncounter("CAMPUS-001")}>CAMPUS-001</button>
+      {/* Helper text */}
+      <p className="text-[10px] sm:text-xs text-center text-muted-foreground shrink-0">
+        Teste:{" "}
+        <button
+          type="button"
+          className="text-primary underline hover:opacity-80"
+          onClick={() => openEncounter("CAMPUS-001")}
+        >
+          CAMPUS-001
+        </button>
       </p>
 
+      {/* Encounter screen */}
       {encounter && lastToken && (
         <EncounterScreen encounter={encounter} qrToken={lastToken} onClose={closeEncounter} />
       )}

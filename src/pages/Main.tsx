@@ -61,15 +61,15 @@ function PanelShell({
   children: ReactNode;
 }) {
   return (
-    <div className="h-full w-full border-x border-white/30 bg-card/55 backdrop-blur-md shadow-soft px-4 pt-24 pb-6 flex flex-col">
-      <div className="mb-3 px-1 shrink-0">
-        <div className="inline-flex items-center rounded-full bg-primary/10 text-primary px-3 py-1 text-xs font-medium">
+    <div className="h-full w-full border-x border-white/30 bg-card/55 backdrop-blur-md shadow-soft px-3 sm:px-4 pt-20 sm:pt-24 pb-4 sm:pb-6 flex flex-col">
+      <div className="mb-2 sm:mb-3 px-1 shrink-0">
+        <div className="inline-flex items-center rounded-full bg-primary/10 text-primary px-2 py-0.5 sm:px-3 sm:py-1 text-[10px] sm:text-xs font-medium">
           {badge}
         </div>
-        <h1 className="font-heading text-xl sm:text-2xl mt-2 text-foreground">{title}</h1>
-        <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">{subtitle}</p>
+        <h1 className="font-heading text-lg sm:text-2xl mt-1.5 sm:mt-2 text-foreground">{title}</h1>
+        <p className="text-xs text-muted-foreground mt-0.5 leading-tight">{subtitle}</p>
       </div>
-      <div className="min-h-0 flex-1">{children}</div>
+      <div className="min-h-0 flex-1 overflow-hidden">{children}</div>
     </div>
   );
 }
