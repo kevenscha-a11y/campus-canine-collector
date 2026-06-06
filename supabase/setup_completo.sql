@@ -1,3 +1,9 @@
+﻿-- =============================================================================
+-- DogDex - SETUP COMPLETO (rode tudo de uma vez no SQL Editor do Supabase)
+-- Projeto: campus-canine-collector
+-- Inclui: schema, funcoes, seed, admin, storage e patches RLS
+-- Seguro para rodar mais de uma vez (usa IF NOT EXISTS / ON CONFLICT / DROP IF EXISTS)
+-- =============================================================================
 -- =============================================================================
 -- DogDex — SCRIPT COMPLETO (Supabase)
 -- Cole e execute de uma vez no SQL Editor.
@@ -623,4 +629,307 @@ ON CONFLICT (slug) DO NOTHING;
 -- =============================================================================
 -- FIM — RPCs usadas pelo app: resolve_qr_encounter, attempt_capture, sync_biscuit_wallet
 -- QR de teste: CAMPUS-001 … CAMPUS-012
+-- =============================================================================
+
+-- =============================================================================
+-- 7. ADMIN ROLES (coluna role + politicas de admin)
+-- =============================================================================
+DROP POLICY IF EXISTS "dogs_insert_admin" ON public.dogs;
+DROP POLICY IF EXISTS "dogs_update_admin" ON public.dogs;
+DROP POLICY IF EXISTS "dogs_delete_admin" ON public.dogs;
+DROP POLICY IF EXISTS "dog_qr_insert_admin" ON public.dog_qr_codes;
+DROP POLICY IF EXISTS "dog_qr_update_admin" ON public.dog_qr_codes;
+DROP POLICY IF EXISTS "dog_qr_delete_admin" ON public.dog_qr_codes;
+DROP POLICY IF EXISTS "dog_evolution_insert_admin" ON public.dog_evolution_stages;
+DROP POLICY IF EXISTS "dog_evolution_update_admin" ON public.dog_evolution_stages;
+DROP POLICY IF EXISTS "dog_evolution_delete_admin" ON public.dog_evolution_stages;
+-- Adiciona suporte a roles (user, admin) para controle de permissões
+
+-- Criar enum de roles
+DO $$ BEGIN
+  CREATE TYPE public.user_role AS ENUM ('user', 'admin');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- Adicionar coluna role à tabela profiles
+ALTER TABLE public.profiles
+ADD COLUMN IF NOT EXISTS role public.user_role NOT NULL DEFAULT 'user';
+
+-- Criar índice para queries de admin
+CREATE INDEX IF NOT EXISTS idx_profiles_role ON public.profiles (role) WHERE role = 'admin';
+
+-- Atualizar políticas RLS para dogs permitir CRUD por admin
+DROP POLICY IF EXISTS "dogs_read_authenticated" ON public.dogs;
+
+CREATE POLICY "dogs_read_authenticated" ON public.dogs
+  FOR SELECT TO authenticated USING (is_active = true);
+
+-- Política para inserir dogs (apenas admin)
+CREATE POLICY "dogs_insert_admin" ON public.dogs
+  FOR INSERT TO authenticated WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE id = auth.uid() AND role = 'admin'
+    )
+  );
+
+-- Política para atualizar dogs (apenas admin)
+CREATE POLICY "dogs_update_admin" ON public.dogs
+  FOR UPDATE TO authenticated USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE id = auth.uid() AND role = 'admin'
+    )
+  ) WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE id = auth.uid() AND role = 'admin'
+    )
+  );
+
+-- Política para deletar dogs (apenas admin)
+CREATE POLICY "dogs_delete_admin" ON public.dogs
+  FOR DELETE TO authenticated USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE id = auth.uid() AND role = 'admin'
+    )
+  );
+
+-- Política para dog_qr_codes (inserir/atualizar apenas admin)
+DROP POLICY IF EXISTS "dog_qr_read" ON public.dog_qr_codes;
+
+CREATE POLICY "dog_qr_read" ON public.dog_qr_codes
+  FOR SELECT TO authenticated USING (is_active = true);
+
+CREATE POLICY "dog_qr_insert_admin" ON public.dog_qr_codes
+  FOR INSERT TO authenticated WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE id = auth.uid() AND role = 'admin'
+    )
+  );
+
+CREATE POLICY "dog_qr_update_admin" ON public.dog_qr_codes
+  FOR UPDATE TO authenticated USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE id = auth.uid() AND role = 'admin'
+    )
+  ) WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE id = auth.uid() AND role = 'admin'
+    )
+  );
+
+CREATE POLICY "dog_qr_delete_admin" ON public.dog_qr_codes
+  FOR DELETE TO authenticated USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE id = auth.uid() AND role = 'admin'
+    )
+  );
+
+-- Política para dog_evolution_stages (inserir/atualizar apenas admin)
+DROP POLICY IF EXISTS "dog_evolution_read" ON public.dog_evolution_stages;
+
+CREATE POLICY "dog_evolution_read" ON public.dog_evolution_stages
+  FOR SELECT TO authenticated USING (true);
+
+CREATE POLICY "dog_evolution_insert_admin" ON public.dog_evolution_stages
+  FOR INSERT TO authenticated WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE id = auth.uid() AND role = 'admin'
+    )
+  );
+
+CREATE POLICY "dog_evolution_update_admin" ON public.dog_evolution_stages
+  FOR UPDATE TO authenticated USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE id = auth.uid() AND role = 'admin'
+    )
+  ) WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE id = auth.uid() AND role = 'admin'
+    )
+  );
+
+CREATE POLICY "dog_evolution_delete_admin" ON public.dog_evolution_stages
+  FOR DELETE TO authenticated USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE id = auth.uid() AND role = 'admin'
+    )
+  );
+
+-- =============================================================================
+-- 8. FUNCAO ADMIN - deletar dog e resequenciar dex
+-- =============================================================================
+-- Exclui (hard delete) um dog e resequencia os números da Pokédex
+
+CREATE OR REPLACE FUNCTION public.admin_delete_dog_and_resequence(p_dog_id uuid)
+RETURNS boolean
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+SET row_security = off
+AS $$
+DECLARE
+  v_uid uuid;
+  v_catalog integer;
+BEGIN
+  v_uid := auth.uid();
+
+  IF v_uid IS NULL THEN
+    RAISE EXCEPTION 'not_authenticated';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM public.profiles
+    WHERE id = v_uid AND role = 'admin'
+  ) THEN
+    RAISE EXCEPTION 'forbidden';
+  END IF;
+
+  DELETE FROM public.dogs
+  WHERE id = p_dog_id;
+
+  IF NOT FOUND THEN
+    RETURN false;
+  END IF;
+
+  UPDATE public.dogs
+  SET dex_number = dex_number + 10000,
+      updated_at = now()
+  WHERE is_active = true;
+
+  WITH ordered AS (
+    SELECT
+      id,
+      row_number() OVER (ORDER BY dex_number, created_at, id)::smallint AS new_dex
+    FROM public.dogs
+    WHERE is_active = true
+  )
+  UPDATE public.dogs d
+  SET dex_number = o.new_dex,
+      updated_at = now()
+  FROM ordered o
+  WHERE d.id = o.id;
+
+  SELECT COUNT(*)::integer INTO v_catalog
+  FROM public.dogs
+  WHERE is_active = true;
+
+  UPDATE public.user_dogdex_stats
+  SET catalog_total = v_catalog,
+      completion_percent = CASE
+        WHEN v_catalog > 0 THEN ROUND((total_captured::numeric / v_catalog) * 100, 2)
+        ELSE 0
+      END,
+      updated_at = now();
+
+  RETURN true;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.admin_delete_dog_and_resequence(uuid) TO authenticated;
+
+-- =============================================================================
+-- 9. STORAGE - bucket dog-sprites para upload de imagens
+-- =============================================================================
+-- Configura bucket e políticas de storage para sprites dos dogs
+
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'dog-sprites',
+  'dog-sprites',
+  true,
+  5242880,
+  ARRAY['image/png', 'image/jpeg', 'image/webp', 'image/gif']
+)
+ON CONFLICT (id) DO UPDATE
+SET
+  public = EXCLUDED.public,
+  file_size_limit = EXCLUDED.file_size_limit,
+  allowed_mime_types = EXCLUDED.allowed_mime_types;
+
+DROP POLICY IF EXISTS "dog_sprites_public_read" ON storage.objects;
+CREATE POLICY "dog_sprites_public_read"
+ON storage.objects
+FOR SELECT
+TO public
+USING (bucket_id = 'dog-sprites');
+
+DROP POLICY IF EXISTS "dog_sprites_admin_insert" ON storage.objects;
+CREATE POLICY "dog_sprites_admin_insert"
+ON storage.objects
+FOR INSERT
+TO authenticated
+WITH CHECK (
+  bucket_id = 'dog-sprites'
+  AND EXISTS (
+    SELECT 1
+    FROM public.profiles
+    WHERE id = auth.uid() AND role = 'admin'
+  )
+);
+
+DROP POLICY IF EXISTS "dog_sprites_admin_update" ON storage.objects;
+CREATE POLICY "dog_sprites_admin_update"
+ON storage.objects
+FOR UPDATE
+TO authenticated
+USING (
+  bucket_id = 'dog-sprites'
+  AND EXISTS (
+    SELECT 1
+    FROM public.profiles
+    WHERE id = auth.uid() AND role = 'admin'
+  )
+)
+WITH CHECK (
+  bucket_id = 'dog-sprites'
+  AND EXISTS (
+    SELECT 1
+    FROM public.profiles
+    WHERE id = auth.uid() AND role = 'admin'
+  )
+);
+
+DROP POLICY IF EXISTS "dog_sprites_admin_delete" ON storage.objects;
+CREATE POLICY "dog_sprites_admin_delete"
+ON storage.objects
+FOR DELETE
+TO authenticated
+USING (
+  bucket_id = 'dog-sprites'
+  AND EXISTS (
+    SELECT 1
+    FROM public.profiles
+    WHERE id = auth.uid() AND role = 'admin'
+  )
+);
+
+-- =============================================================================
+-- 10. PATCH RLS - permite insert de carteira e stats no primeiro login
+-- =============================================================================
+-- Rode se login funciona mas o app não carrega carteira/stats (RLS bloqueando insert)
+
+DROP POLICY IF EXISTS "biscuit_wallet_insert_own" ON public.user_biscuit_wallets;
+CREATE POLICY "biscuit_wallet_insert_own" ON public.user_biscuit_wallets
+  FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "dogdex_stats_insert_own" ON public.user_dogdex_stats;
+CREATE POLICY "dogdex_stats_insert_own" ON public.user_dogdex_stats
+  FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
+
+-- =============================================================================
+-- FIM DO SETUP
+-- QR de teste: CAMPUS-001 ... CAMPUS-012
+-- Para virar admin, rode depois:
+--   UPDATE public.profiles SET role = 'admin' WHERE id = 'SEU-USER-UUID';
 -- =============================================================================
