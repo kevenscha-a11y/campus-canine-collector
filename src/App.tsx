@@ -1,4 +1,6 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryCache, QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { AuthSessionWatcher } from "@/components/auth/AuthSessionWatcher";
+import { forceLogoutToLogin, isAuthFailure } from "@/lib/sessionGuard";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
@@ -17,7 +19,20 @@ import VerifyEmail from "./pages/auth/VerifyEmail.tsx";
 import AuthCallback from "./pages/auth/AuthCallback.tsx";
 import ResetPassword from "./pages/auth/ResetPassword.tsx";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  queryCache: new QueryCache({
+    onError: (error) => {
+      if (isAuthFailure(error)) {
+        void forceLogoutToLogin("session");
+      }
+    },
+  }),
+  defaultOptions: {
+    queries: {
+      retry: (failureCount, error) => !isAuthFailure(error) && failureCount < 1,
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -26,6 +41,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+          <AuthSessionWatcher />
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />

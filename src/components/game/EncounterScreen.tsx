@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import type { EncounterData } from "@/types/database";
 import { PERSONALITY_LABELS, RARITY_CLASS, RARITY_LABELS } from "@/lib/rarity";
-import { useGameActions } from "@/hooks/useGameData";
+import { useBiscuitWallet, useGameActions } from "@/hooks/useGameData";
 import { useGameUi } from "@/contexts/GameContext";
 import { CaptureShake } from "./CaptureShake";
 import { DogSprite } from "./DogSprite";
@@ -23,6 +23,7 @@ export function EncounterScreen({
   onClose: () => void;
 }) {
   const { attemptCapture } = useGameActions();
+  const { data: wallet } = useBiscuitWallet();
   const { notifyBiscuitSpent, triggerCelebration } = useGameUi();
   const [phase, setPhase] = useState<Phase>(encounter.owned ? "choose" : "intro");
   const [biscuitType, setBiscuitType] = useState<"normal" | "premium">("normal");
@@ -33,9 +34,20 @@ export function EncounterScreen({
     success: boolean;
     message: string;
     shiny?: boolean;
+    outcome: "captured" | "miss" | "already_owned";
   } | null>(null);
 
   const { dog } = encounter;
+  const normalLeft = wallet?.normal_balance ?? 0;
+  const premiumLeft = wallet?.premium_balance ?? 0;
+  const hasAnyBiscuit = normalLeft > 0 || premiumLeft > 0;
+
+  function backToChoose() {
+    setResult(null);
+    setPhase("choose");
+    setShakePhase("throw");
+    setProgress(0);
+  }
 
   async function throwBiscuit(type: "normal" | "premium") {
     const rate =
@@ -65,18 +77,28 @@ export function EncounterScreen({
 
       await new Promise((r) => setTimeout(r, 600));
       setShakePhase(res.success ? "success" : "fail");
+      const outcome =
+        res.result === "already_owned"
+          ? "already_owned"
+          : res.success
+            ? "captured"
+            : "miss";
+
       setResult({
         success: res.success,
         message: res.message,
         shiny: res.became_shiny,
+        outcome,
       });
       setPhase("result");
 
       if (res.success) {
         triggerCelebration();
         toast.success(res.message);
-      } else {
+      } else if (outcome === "miss") {
         toast.error(res.message);
+      } else {
+        toast.info(res.message);
       }
     } catch (e) {
       clearInterval(progressInterval);
@@ -84,8 +106,7 @@ export function EncounterScreen({
       if (msg.includes("no_normal_biscuits")) toast.error("Sem biscoitos normais!");
       else if (msg.includes("no_premium_biscuits")) toast.error("Sem biscoitos premium!");
       else toast.error(msg);
-      setPhase("choose");
-      setShakePhase("throw");
+      backToChoose();
     }
   }
 
@@ -169,10 +190,12 @@ export function EncounterScreen({
                       variant="secondary"
                       className="w-full justify-between h-auto py-3"
                       onClick={() => throwBiscuit("normal")}
+                      disabled={normalLeft < 1}
                     >
                       <span className="flex items-center gap-2">
                         <img src={biscuitImg} alt="" className="h-7 w-7" />
                         Biscoito Normal
+                        <span className="text-xs text-muted-foreground">({normalLeft})</span>
                       </span>
                       <span className="font-bold text-primary tabular-nums">
                         {Math.round(encounter.catch_rates.normal * 100)}%
@@ -182,16 +205,23 @@ export function EncounterScreen({
                       variant="hero"
                       className="w-full justify-between h-auto py-3"
                       onClick={() => throwBiscuit("premium")}
+                      disabled={premiumLeft < 1}
                     >
                       <span className="flex items-center gap-2">
                         <Sparkles className="h-4 w-4" />
                         <Cookie className="h-4 w-4" />
                         Biscoito Premium
+                        <span className="text-xs opacity-80">({premiumLeft})</span>
                       </span>
                       <span className="font-bold tabular-nums">
                         {Math.round(encounter.catch_rates.premium * 100)}%
                       </span>
                     </Button>
+                    {!hasAnyBiscuit && (
+                      <p className="text-xs text-center text-destructive">
+                        Sem biscoitos! Volte amanhã ou feche para explorar.
+                      </p>
+                    )}
                   </motion.div>
                 )}
 
@@ -232,9 +262,28 @@ export function EncounterScreen({
                         <Sparkles className="h-5 w-5 animate-pulse" /> Shiny!
                       </p>
                     )}
-                    <Button className="mt-5" variant="hero" onClick={onClose}>
-                      Continuar explorando
-                    </Button>
+                    <div className="flex flex-col gap-2 mt-5 px-4">
+                      {result.success || result.outcome === "already_owned" ? (
+                        <Button variant="hero" onClick={onClose}>
+                          Continuar explorando
+                        </Button>
+                      ) : (
+                        <>
+                          {hasAnyBiscuit ? (
+                            <Button variant="hero" onClick={backToChoose}>
+                              Tentar de novo
+                            </Button>
+                          ) : (
+                            <p className="text-xs text-muted-foreground mb-1">
+                              Você ficou sem biscoitos para este encontro.
+                            </p>
+                          )}
+                          <Button variant="outline" onClick={onClose}>
+                            Desistir e fechar
+                          </Button>
+                        </>
+                      )}
+                    </div>
                   </motion.div>
                 )}
               </AnimatePresence>

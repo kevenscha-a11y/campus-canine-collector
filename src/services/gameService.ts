@@ -1,6 +1,7 @@
 import { DOG_CATALOG } from "@/data/catalog";
 import { translateGameError } from "@/lib/gameErrors";
 import { extractCampusToken } from "@/lib/qrToken";
+import { forceLogoutToLogin, isAuthFailure } from "@/lib/sessionGuard";
 import { localGameStore } from "@/lib/localGameStore";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import type {
@@ -16,11 +17,19 @@ import type { CaptureHistoryItem } from "@/lib/localGameStore";
 const useLocalGame =
   import.meta.env.VITE_GAME_MODE === "local" || !isSupabaseConfigured;
 
+async function handleRemoteError(error: unknown): Promise<never> {
+  if (isAuthFailure(error)) {
+    await forceLogoutToLogin("api");
+  }
+  throw error;
+}
+
 async function tryRemote<T>(fn: () => Promise<T>): Promise<T | null> {
   if (useLocalGame) return null;
   try {
     return await fn();
-  } catch {
+  } catch (e) {
+    if (isAuthFailure(e)) await forceLogoutToLogin("api");
     return null;
   }
 }
@@ -110,7 +119,10 @@ export const gameService = {
       const { data, error } = await supabase.rpc("resolve_qr_encounter", {
         p_token: normalized,
       });
-      if (error) throw new Error(translateGameError(error.message));
+      if (error) {
+        if (isAuthFailure(error)) await handleRemoteError(error);
+        throw new Error(translateGameError(error.message));
+      }
       if (data) return data as EncounterData;
     }
 
@@ -129,7 +141,10 @@ export const gameService = {
         p_token: normalized,
         p_biscuit_type: biscuit,
       });
-      if (error) throw new Error(translateGameError(error.message));
+      if (error) {
+        if (isAuthFailure(error)) await handleRemoteError(error);
+        throw new Error(translateGameError(error.message));
+      }
       if (data) return data as CaptureResult;
     }
 

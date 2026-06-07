@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { AuthLayout } from "@/components/auth/AuthLayout";
 import { Button } from "@/components/ui/button";
@@ -11,9 +11,19 @@ export default function Login() {
   const { signIn, isConfigured } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const from = (location.state as { from?: { pathname: string } })?.from?.pathname ?? "/app";
 
   const [email, setEmail] = useState("");
+
+  useEffect(() => {
+    const reason = searchParams.get("reason");
+    if (reason === "session" || reason === "api" || reason === "signed_out") {
+      toast.error("Sua sessão expirou. Entre novamente.");
+    } else if (reason === "not_found") {
+      toast.info("Página não encontrada. Faça login para continuar.");
+    }
+  }, [searchParams]);
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
