@@ -1,4 +1,6 @@
 import { DOG_CATALOG } from "@/data/catalog";
+import { translateGameError } from "@/lib/gameErrors";
+import { extractCampusToken } from "@/lib/qrToken";
 import { localGameStore } from "@/lib/localGameStore";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import type {
@@ -102,12 +104,17 @@ export const gameService = {
   },
 
   async resolveQr(userId: string, token: string): Promise<EncounterData> {
-    const remote = await tryRemote(async () => {
-      const { data, error } = await supabase.rpc("resolve_qr_encounter", { p_token: token });
-      if (error) throw error;
-      return data as EncounterData;
-    });
-    return remote ?? localGameStore.resolveQr(userId, token);
+    const normalized = extractCampusToken(token) ?? token.trim().toUpperCase();
+
+    if (!useLocalGame) {
+      const { data, error } = await supabase.rpc("resolve_qr_encounter", {
+        p_token: normalized,
+      });
+      if (error) throw new Error(translateGameError(error.message));
+      if (data) return data as EncounterData;
+    }
+
+    return localGameStore.resolveQr(userId, normalized);
   },
 
   async attemptCapture(
@@ -115,15 +122,18 @@ export const gameService = {
     token: string,
     biscuit: "normal" | "premium",
   ): Promise<CaptureResult> {
-    const remote = await tryRemote(async () => {
+    const normalized = extractCampusToken(token) ?? token.trim().toUpperCase();
+
+    if (!useLocalGame) {
       const { data, error } = await supabase.rpc("attempt_capture", {
-        p_token: token,
+        p_token: normalized,
         p_biscuit_type: biscuit,
       });
-      if (error) throw error;
-      return data as CaptureResult;
-    });
-    return remote ?? localGameStore.attemptCapture(userId, token, biscuit);
+      if (error) throw new Error(translateGameError(error.message));
+      if (data) return data as CaptureResult;
+    }
+
+    return localGameStore.attemptCapture(userId, normalized, biscuit);
   },
 
   getCatalogPreview() {
